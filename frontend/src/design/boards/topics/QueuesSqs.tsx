@@ -2,7 +2,15 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,8 +21,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  OutlineTag,
+  SectionLabel,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useSqsDestinations } from "@/hooks/sqs/useSqsDestinations";
 import { queue as readQueue, stalledInFlight, type SqsQueue } from "@/mq/sqs/destinations";
 import { formatBytes, formatCount } from "@/lib/format";
@@ -23,8 +41,6 @@ import { formatErrorMessage } from "@/lib/utils";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as sqsApi from "@/api/sqs";
 import { QueueDialogSqs } from "./QueueDialogSqs";
-
-const MONO11 = { fontSize: "11px" } as const;
 
 /** A dash, not a zero: an absent figure and a measured zero are not alike. */
 const DASH = "—";
@@ -76,10 +92,7 @@ export function QueuesSqs() {
     return queues.filter((entry) => needle === "" || entry.name.toLowerCase().includes(needle));
   }, [queues, search]);
 
-  const detail = useMemo(
-    () => shown.find((entry) => entry.name === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((entry) => entry.name === selected) ?? null;
 
   const save = useCallback(
     async (input: sqsApi.SQSQueueInput) => {
@@ -152,20 +165,14 @@ export function QueuesSqs() {
         title={t("shell.nav.sqs.topics")}
         subtitle={t("board.sqs.queues.count", { count: queues.length })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.sqs.queues.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+          <>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
             <Button
-              size="sm"
+              disabled={!state.online}
               onClick={() => {
                 setEditing(null);
                 setFormOpen(true);
@@ -174,146 +181,149 @@ export function QueuesSqs() {
               <Plus aria-hidden />
               {t("board.sqs.queues.create")}
             </Button>
-          </div>
+          </>
         }
       />
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.sqs.queues.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
       <QueueDialogSqs
         open={formOpen}
         editing={editing}
         onOpenChange={setFormOpen}
         onSubmit={save}
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.sqs.queues.name")}</TableHead>
-                    <TableHead className="num">{t("board.sqs.queues.visible")}</TableHead>
-                    <TableHead className="num">{t("board.sqs.queues.inFlight")}</TableHead>
-                    <TableHead className="num">{t("board.sqs.queues.delayed")}</TableHead>
-                    <TableHead className="num">{t("board.sqs.queues.depth")}</TableHead>
-                    <TableHead>{t("board.sqs.queues.deadLetterQueue")}</TableHead>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.sqs.queues.name")}</TableHead>
+                  <TableHead className="num">{t("board.sqs.queues.visible")}</TableHead>
+                  <TableHead className="num">{t("board.sqs.queues.inFlight")}</TableHead>
+                  <TableHead className="num">{t("board.sqs.queues.delayed")}</TableHead>
+                  <TableHead className="num">{t("board.sqs.queues.depth")}</TableHead>
+                  <TableHead>{t("board.sqs.queues.deadLetterQueue")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate select-text">{entry.name}</span>
+                        {entry.fifo && <OutlineTag>{t("board.sqs.queues.fifoBadge")}</OutlineTag>}
+                      </span>
+                    </TableCell>
+                    <TableCell className="num">{count(entry.visible)}</TableCell>
+                    <TableCell className="num">{count(entry.inFlight)}</TableCell>
+                    <TableCell className="num">{count(entry.delayed)}</TableCell>
+                    <TableCell className="num">{count(entry.depth)}</TableCell>
+                    <TableCell className="select-text">{entry.deadLetterQueue ?? DASH}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
-                        {entry.fifo && (
-                          <span className="pb pSQS" style={{ marginLeft: "6px" }}>
-                            {t("board.sqs.queues.fifoBadge")}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.visible)}
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.inFlight)}
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.delayed)}
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.depth)}
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.deadLetterQueue ?? DASH}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                      {queues.length === 0
+                        ? t("board.sqs.queues.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <QueueDetail
-                entry={detail}
-                onEdit={() => {
-                  setEditing(detail);
-                  setFormOpen(true);
-                }}
-                onPurge={() => void purge(detail)}
-                onRemove={() => void remove(detail)}
-              />
-            )}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.sqs.queues.note")}
-          </p>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <QueueSheet
+              key={current.name}
+              entry={current}
+              onEdit={() => {
+                setEditing(current);
+                setFormOpen(true);
+              }}
+              onPurge={() => void purge(current)}
+              onRemove={() => void remove(current)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && <StatusBar left={<span>{t("board.sqs.queues.note")}</span>} />}
     </Page>
   );
 }
 
-function QueueDetail({
+export function QueueSheet({
   entry,
   onEdit,
   onPurge,
   onRemove,
+  onClose,
 }: {
   entry: SqsQueue;
   onEdit: () => void;
   onPurge: () => void;
   onRemove: () => void;
+  onClose: () => void;
 }) {
   const { t } = useTranslation();
   return (
-    <Panel style={{ width: "300px", flex: "none", overflow: "auto" }}>
-      <PanelHeader title={entry.name} />
-      <div style={{ padding: "0 12px 12px" }}>
-        <SectionLabel>{t("board.sqs.queues.section.messages")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.sqs.queues.visible"), count(entry.visible)],
-            [t("board.sqs.queues.inFlight"), count(entry.inFlight)],
-            [t("board.sqs.queues.delayed"), count(entry.delayed)],
-            [t("board.sqs.queues.depth"), count(entry.depth)],
-          ]}
-        />
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.name} onClose={onClose} />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.sqs.queues.visible")} value={count(entry.visible)} />
+          <MiniStat label={t("board.sqs.queues.inFlight")} value={count(entry.inFlight)} />
+          <MiniStat label={t("board.sqs.queues.delayed")} value={count(entry.delayed)} />
+          <MiniStat label={t("board.sqs.queues.depth")} value={count(entry.depth)} />
+        </div>
 
-        <SectionLabel>{t("board.sqs.queues.section.settings")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.sqs.queues.visibilityTimeout"), duration(entry.visibilityTimeoutSec)],
-            [t("board.sqs.queues.deliveryDelay"), duration(entry.delaySec)],
-            [t("board.sqs.queues.retention"), duration(entry.retentionSec)],
-            [t("board.sqs.queues.receiveWait"), duration(entry.receiveWaitSec)],
-            [
-              t("board.sqs.queues.maxMessageBytes"),
-              entry.maxMessageBytes == null ? DASH : formatBytes(entry.maxMessageBytes),
-            ],
-            [
-              t("board.sqs.queues.encrypted"),
-              t(entry.encrypted ? "common.yes" : "common.no"),
-            ],
-          ]}
-        />
+        {/* Said where the number is, because this is the one reading that
+            looks like an idle queue and is not: something took every message
+            and has finished none of them. */}
+        {stalledInFlight(entry) && (
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
+            {t("board.sqs.queues.allInFlight", { count: entry.inFlight ?? 0 })}
+          </p>
+        )}
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.sqs.queues.section.settings")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.sqs.queues.visibilityTimeout"), duration(entry.visibilityTimeoutSec)],
+              [t("board.sqs.queues.deliveryDelay"), duration(entry.delaySec)],
+              [t("board.sqs.queues.retention"), duration(entry.retentionSec)],
+              [t("board.sqs.queues.receiveWait"), duration(entry.receiveWaitSec)],
+              [
+                t("board.sqs.queues.maxMessageBytes"),
+                entry.maxMessageBytes == null ? DASH : formatBytes(entry.maxMessageBytes),
+              ],
+              [
+                t("board.sqs.queues.encrypted"),
+                t(entry.encrypted ? "common.yes" : "common.no"),
+              ],
+            ]}
+          />
+        </div>
 
         {entry.fifo && (
-          <>
-            <SectionLabel>{t("board.sqs.queues.section.fifo")}</SectionLabel>
+          <div>
+            <SectionLabel className="mb-1.5">{t("board.sqs.queues.section.fifo")}</SectionLabel>
             <KV
               rows={[
                 [
@@ -326,41 +336,34 @@ function QueueDetail({
                 [t("board.sqs.queues.throughputLimit"), entry.fifoThroughputLimit ?? DASH],
               ]}
             />
-          </>
+          </div>
         )}
 
-        <SectionLabel>{t("board.sqs.queues.section.identity")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.sqs.queues.deadLetterQueue"), entry.deadLetterQueue ?? DASH],
-            [t("board.sqs.queues.maxReceiveCount"), count(entry.maxReceiveCount)],
-            [t("board.sqs.queues.arn"), entry.arn ?? DASH],
-            [t("board.sqs.queues.createdAt"), formatMessageTime(entry.createdAtMs)],
-            [t("board.sqs.queues.modified"), formatMessageTime(entry.modifiedAtMs)],
-          ]}
-        />
-
-        <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-          <Button size="sm" variant="outline" onClick={onEdit}>
-            {t("common.edit")}
-          </Button>
-          <Button size="sm" variant="destructive" onClick={onPurge}>
-            {t("board.sqs.queues.purgeAction")}
-          </Button>
-          <Button size="sm" variant="destructive" onClick={onRemove}>
-            {t("common.delete")}
-          </Button>
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.sqs.queues.section.identity")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.sqs.queues.deadLetterQueue"), entry.deadLetterQueue ?? DASH],
+              [t("board.sqs.queues.maxReceiveCount"), count(entry.maxReceiveCount)],
+              [t("board.sqs.queues.arn"), entry.arn ?? DASH],
+              [t("board.sqs.queues.createdAt"), formatMessageTime(entry.createdAtMs)],
+              [t("board.sqs.queues.modified"), formatMessageTime(entry.modifiedAtMs)],
+            ]}
+          />
         </div>
-
-        {/* Said where the number is, because this is the one reading that
-            looks like an idle queue and is not: something took every message
-            and has finished none of them. */}
-        {stalledInFlight(entry) && (
-          <p style={{ marginTop: "10px", fontSize: "11px", color: "var(--c-warn)" }}>
-            {t("board.sqs.queues.allInFlight", { count: entry.inFlight ?? 0 })}
-          </p>
-        )}
-      </div>
-    </Panel>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <Button variant="outline" onClick={onEdit}>
+          {t("common.edit")}
+        </Button>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onPurge}>
+          {t("board.sqs.queues.purgeAction")}
+        </Button>
+        <Button variant="destructive" onClick={onRemove}>
+          {t("common.delete")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

@@ -2,7 +2,15 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,8 +21,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  OutlineTag,
+  SectionLabel,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useServiceBusRouting } from "@/hooks/azureservicebus/useServiceBusRouting";
 import {
   DEFAULT_RULE,
@@ -24,12 +41,11 @@ import {
   type ServiceBusRule,
 } from "@/mq/azureservicebus/rules";
 import { entity as readEntity } from "@/mq/azureservicebus/entities";
-import { formatErrorMessage } from "@/lib/utils";
+import { cn, formatErrorMessage } from "@/lib/utils";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as serviceBusApi from "@/api/azureservicebus";
 import { RuleDialogAzureServiceBus } from "./RuleDialogAzureServiceBus";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 /**
@@ -76,10 +92,7 @@ export function RulesAzureServiceBus() {
   }, [rules, search]);
 
   const key = (row: ServiceBusRule) => `${row.topic}/${row.subscription}/${row.name}`;
-  const detail = useMemo(
-    () => shown.find((row) => key(row) === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((row) => key(row) === selected) ?? null;
 
   const save = useCallback(
     async (input: serviceBusApi.AzureServiceBusRuleInput) => {
@@ -134,155 +147,170 @@ export function RulesAzureServiceBus() {
           topics: topics.length,
         })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.azure-servicebus.rules.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+          <>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
-            <Button size="sm" onClick={() => setFormOpen(true)}>
+            <Button disabled={!state.online} onClick={() => setFormOpen(true)}>
               <Plus aria-hidden />
               {t("board.azure-servicebus.rules.create")}
             </Button>
-          </div>
+          </>
         }
       />
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.azure-servicebus.rules.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
       <RuleDialogAzureServiceBus
         open={formOpen}
         onOpenChange={setFormOpen}
         onSubmit={save}
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.azure-servicebus.rules.topic")}</TableHead>
-                    <TableHead>{t("board.azure-servicebus.rules.subscription")}</TableHead>
-                    <TableHead>{t("board.azure-servicebus.rules.name")}</TableHead>
-                    <TableHead>{t("board.azure-servicebus.rules.filter")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((row) => (
-                    <TableRow
-                      key={key(row)}
-                      data-state={detail != null && key(detail) === key(row) ? "selected" : undefined}
-                      onClick={() => setSelected(key(row))}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {row.topic}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {row.subscription}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {row.name}
-                        </span>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.azure-servicebus.rules.topic")}</TableHead>
+                  <TableHead>{t("board.azure-servicebus.rules.subscription")}</TableHead>
+                  <TableHead>{t("board.azure-servicebus.rules.name")}</TableHead>
+                  <TableHead>{t("board.azure-servicebus.rules.filter")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((row) => (
+                  <TableRow
+                    key={key(row)}
+                    selected={selected === key(row)}
+                    onClick={() => setSelected(key(row))}
+                  >
+                    <TableCell className="select-text">{row.topic}</TableCell>
+                    <TableCell className="select-text">{row.subscription}</TableCell>
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate select-text">{row.name}</span>
                         {row.name === DEFAULT_RULE && (
-                          <span className="pb pASB" style={{ marginLeft: "6px" }}>
-                            {t("board.azure-servicebus.rules.defaultBadge")}
-                          </span>
+                          <OutlineTag>{t("board.azure-servicebus.rules.defaultBadge")}</OutlineTag>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className="mono3"
-                          style={{
-                            ...MONO11,
-                            color: matchesNothing(row) ? "var(--c-warn)" : undefined,
-                          }}
-                        >
-                          {row.summary || DASH}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      </span>
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "mono3 text-[11px] select-text",
+                        matchesNothing(row) && "text-(--c-warn-text)",
+                      )}
+                    >
+                      {row.summary || DASH}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      {rules.length === 0
+                        ? t("board.azure-servicebus.rules.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && <RuleDetail entry={detail} onRemove={() => void remove(detail)} />}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.azure-servicebus.rules.note")}
-          </p>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <RuleSheet
+              key={key(current)}
+              entry={current}
+              onRemove={() => void remove(current)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && (
+        <StatusBar left={<span>{t("board.azure-servicebus.rules.note")}</span>} />
+      )}
     </Page>
   );
 }
 
-function RuleDetail({ entry, onRemove }: { entry: ServiceBusRule; onRemove: () => void }) {
+export function RuleSheet({
+  entry,
+  onRemove,
+  onClose,
+}: {
+  entry: ServiceBusRule;
+  onRemove: () => void;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
   return (
-    <Panel style={{ width: "320px", flex: "none", overflow: "auto" }}>
-      <PanelHeader title={entry.name} />
-      <div style={{ padding: "0 12px 12px" }}>
-        <SectionLabel>{t("board.azure-servicebus.rules.section.edge")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.azure-servicebus.rules.topic"), entry.topic],
-            [t("board.azure-servicebus.rules.subscription"), entry.subscription],
-            [t("board.azure-servicebus.rules.kind"), entry.kind],
-          ]}
-        />
-
-        <SectionLabel>{t("board.azure-servicebus.rules.section.filter")}</SectionLabel>
-        {entry.kind === "correlation" && entry.correlation.length > 0 ? (
-          <KV rows={entry.correlation} />
-        ) : (
-          <KV rows={[[t("board.azure-servicebus.rules.filter"), entry.summary || DASH]]} />
-        )}
-
-        {entry.action != null && (
-          <>
-            <SectionLabel>{t("board.azure-servicebus.rules.section.action")}</SectionLabel>
-            <KV rows={[[t("board.azure-servicebus.rules.action"), entry.action]]} />
-            <p style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-              {t("board.azure-servicebus.rules.actionNote")}
-            </p>
-          </>
-        )}
-
-        <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-          <Button size="sm" variant="destructive" onClick={onRemove}>
-            {t("common.delete")}
-          </Button>
-        </div>
-
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.name} onClose={onClose} />
+      <DetailPanelBody>
         {matchesEverything(entry) && (
-          <p style={{ marginTop: "10px", fontSize: "11px", color: "var(--c-muted)" }}>
+          <p className="text-xs leading-relaxed text-muted-foreground">
             {t("board.azure-servicebus.rules.everythingNote")}
           </p>
         )}
         {matchesNothing(entry) && (
-          <p style={{ marginTop: "10px", fontSize: "11px", color: "var(--c-warn)" }}>
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
             {t("board.azure-servicebus.rules.nothingNote")}
           </p>
         )}
-      </div>
-    </Panel>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.azure-servicebus.rules.section.edge")}
+          </SectionLabel>
+          <KV
+            rows={[
+              [t("board.azure-servicebus.rules.topic"), entry.topic],
+              [t("board.azure-servicebus.rules.subscription"), entry.subscription],
+              [t("board.azure-servicebus.rules.kind"), entry.kind],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.azure-servicebus.rules.section.filter")}
+          </SectionLabel>
+          {entry.kind === "correlation" && entry.correlation.length > 0 ? (
+            <KV rows={entry.correlation} />
+          ) : (
+            <KV rows={[[t("board.azure-servicebus.rules.filter"), entry.summary || DASH]]} />
+          )}
+        </div>
+
+        {entry.action != null && (
+          <div>
+            <SectionLabel className="mb-1.5">
+              {t("board.azure-servicebus.rules.section.action")}
+            </SectionLabel>
+            <KV rows={[[t("board.azure-servicebus.rules.action"), entry.action]]} />
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              {t("board.azure-servicebus.rules.actionNote")}
+            </p>
+          </div>
+        )}
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onRemove}>
+          {t("common.delete")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

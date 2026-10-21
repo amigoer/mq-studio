@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Unplug } from "lucide-react";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,17 +12,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, Status, WarnBanner, useConfirm } from "@/components";
-import { BoardState, Notice, NOTICE_PANE } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  SectionLabel,
+  Status,
+  WarnBanner,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useMqttClients } from "@/hooks/mqtt/useMqttBroker";
-import { clientSession, isOrphanedSession } from "@/mq/mqtt/clients";
+import { clientSession, isOrphanedSession, type MqttClientSession } from "@/mq/mqtt/clients";
 import { kickMqttClient } from "@/api/mqtt";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import { formatBytes, formatCount } from "@/lib/format";
 import { formatErrorMessage } from "@/lib/utils";
 import type { ClientConnection } from "@/api/models";
-
-const MONO11 = { fontSize: "11px" } as const;
 
 function reported(value: number | null): string {
   return value == null ? "—" : formatCount(value);
@@ -64,10 +73,7 @@ export function ClientsMqtt() {
     );
   }, [clients, search]);
 
-  const detail = useMemo(
-    () => shown.find((client) => client.name === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((client) => client.name === selected) ?? null;
 
   const orphaned = useMemo(() => clients.filter(isOrphanedSession).length, [clients]);
 
@@ -99,34 +105,36 @@ export function ClientsMqtt() {
           orphaned,
         })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.consumers.mqtt.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
-          </div>
+          <RefreshButton
+            refreshing={state.refreshing}
+            online={state.online}
+            onClick={() => void state.refresh()}
+          />
         }
       />
-      <BoardState state={state}>
-        <PageBody>
-          {error != null && <WarnBanner>{error}</WarnBanner>}
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, minWidth: 0 }}>
-              <Table>
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.consumers.mqtt.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <>
+          {error != null && <WarnBanner style={{ marginBlock: "12px" }}>{error}</WarnBanner>}
+          <ListArea>
+            <ListPane>
+              <Table inset>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Client ID</TableHead>
                     <TableHead>{t("board.consumers.mqtt.user")}</TableHead>
                     <TableHead>{t("board.consumers.mqtt.address")}</TableHead>
                     <TableHead>{t("board.common.protocol")}</TableHead>
-                    <TableHead>{t("board.consumers.mqtt.subsCount")}</TableHead>
+                    <TableHead className="num">{t("board.consumers.mqtt.subsCount")}</TableHead>
                     <TableHead>{t("board.consumers.mqtt.state")}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -136,98 +144,123 @@ export function ClientsMqtt() {
                     return (
                       <TableRow
                         key={client.name}
+                        selected={selected === client.name}
                         onClick={() => setSelected(client.name)}
-                        aria-selected={detail?.name === client.name}
                       >
-                        <TableCell className="mono3" style={MONO11}>
-                          {client.name}
-                        </TableCell>
+                        <TableCell className="select-text">{client.name}</TableCell>
                         <TableCell>{client.user === "" ? "—" : client.user}</TableCell>
-                        <TableCell className="mono3" style={MONO11}>
+                        <TableCell className="mono3 text-xs">
                           {client.peerHost}:{client.peerPort}
                         </TableCell>
-                        <TableCell style={MONO11}>{client.protocol}</TableCell>
+                        <TableCell>{client.protocol}</TableCell>
+                        <TableCell className="num">{reported(session.subscriptions)}</TableCell>
                         <TableCell>
-                          {reported(session.subscriptions)}
-                        </TableCell>
-                        <TableCell>
-                          {session.connected ? (
-                            <Status tone="ok">{t("board.consumers.mqtt.online")}</Status>
-                          ) : (
-                            // A session with nobody on it, still queueing.
-                            <Status tone="warn">
-                              {t("board.consumers.mqtt.offlinePersistent")}
-                            </Status>
-                          )}
+                          <SessionState session={session} />
                         </TableCell>
                       </TableRow>
                     );
                   })}
+                  {shown.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                        {clients.length === 0
+                          ? t("board.consumers.mqtt.none")
+                          : t("board.common.noMatch")}
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
-            </Panel>
+            </ListPane>
 
-            <Panel
-              style={{ width: "300px", flex: "none", ...(detail == null ? NOTICE_PANE : {}) }}
-            >
-              <PanelHeader
-                title={t("board.consumers.mqtt.session")}
-                action={
-                  detail != null && (
-                    <Button variant="outline" onClick={() => void kick(detail)}>
-                      <Unplug size={14} aria-hidden />
-                      {t("board.consumers.mqtt.kick")}
-                    </Button>
-                  )
-                }
+            {current != null && (
+              <ClientSheet
+                key={current.name}
+                client={current}
+                onKick={() => void kick(current)}
+                onClose={() => setSelected(null)}
               />
-              {detail == null ? (
-                <Notice title={t("board.consumers.mqtt.noClients")} />
-              ) : (
-                <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <SectionLabel>{t("board.consumers.mqtt.session")}</SectionLabel>
-                  <KV
-                    rows={[
-                      ["Client ID", detail.name],
-                      [t("board.consumers.mqtt.keepAlive"), `${detail.heartbeatSec}s`],
-                      [
-                        t("board.consumers.mqtt.cleanStart"),
-                        String(clientSession(detail).cleanStart),
-                      ],
-                      [
-                        t("board.consumers.mqtt.expiry"),
-                        reported(clientSession(detail).sessionExpirySec),
-                      ],
-                      [t("board.consumers.mqtt.listener"), clientSession(detail).listener],
-                    ]}
-                  />
-                  <SectionLabel>{t("board.consumers.mqtt.stats")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [
-                        t("board.consumers.mqtt.inflightQueued"),
-                        `${reported(clientSession(detail).inflight)} / ${reported(
-                          clientSession(detail).queued,
-                        )}`,
-                      ],
-                      // A broker that gave up queueing for a client drops the
-                      // messages silently; this is the only place it shows.
-                      [
-                        t("board.consumers.mqtt.queueDropped"),
-                        reported(clientSession(detail).queueDropped),
-                      ],
-                      [
-                        t("board.consumers.mqtt.rxTx"),
-                        `${formatBytes(detail.recvBytes)} / ${formatBytes(detail.sendBytes)}`,
-                      ],
-                    ]}
-                  />
-                </div>
-              )}
-            </Panel>
-          </div>
-        </PageBody>
-      </BoardState>
+            )}
+          </ListArea>
+        </>
+      )}
     </Page>
+  );
+}
+
+function SessionState({ session }: { session: MqttClientSession }) {
+  const { t } = useTranslation();
+  return session.connected ? (
+    <Status tone="ok">{t("board.consumers.mqtt.online")}</Status>
+  ) : (
+    // A session with nobody on it, still queueing.
+    <Status tone="warn">{t("board.consumers.mqtt.offlinePersistent")}</Status>
+  );
+}
+
+function ClientSheet({
+  client,
+  onKick,
+  onClose,
+}: {
+  client: ClientConnection;
+  onKick: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const session = clientSession(client);
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader
+        title={client.name}
+        badge={<SessionState session={session} />}
+        onClose={onClose}
+      />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat
+            label={t("board.consumers.mqtt.inflightQueued")}
+            value={`${reported(session.inflight)} / ${reported(session.queued)}`}
+          />
+          {/* A broker that gave up queueing for a client drops the messages
+              silently; this is the only place it shows. */}
+          <MiniStat
+            label={t("board.consumers.mqtt.queueDropped")}
+            value={reported(session.queueDropped)}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.consumers.mqtt.session")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.consumers.mqtt.keepAlive"), `${client.heartbeatSec}s`],
+              [t("board.consumers.mqtt.cleanStart"), String(session.cleanStart)],
+              [t("board.consumers.mqtt.expiry"), reported(session.sessionExpirySec)],
+              [t("board.consumers.mqtt.listener"), session.listener],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.consumers.mqtt.stats")}</SectionLabel>
+          <KV
+            rows={[
+              [
+                t("board.consumers.mqtt.rxTx"),
+                `${formatBytes(client.recvBytes)} / ${formatBytes(client.sendBytes)}`,
+              ],
+            ]}
+          />
+        </div>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onKick}>
+          <Unplug aria-hidden />
+          {t("board.consumers.mqtt.kick")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

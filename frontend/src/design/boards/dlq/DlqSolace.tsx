@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+} from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -9,8 +16,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  SectionLabel,
+  Status,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useSolaceDeadLetters } from "@/hooks/solace/useSolaceDeadLetters";
 import {
   SOURCE_TOPIC_ENDPOINT,
@@ -20,9 +35,9 @@ import {
   targetExists,
 } from "@/mq/solace/deadletters";
 import { formatCount } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { DeadLetterQueue } from "@bindings/model/models";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 function count(value: number): string {
@@ -86,10 +101,7 @@ export function DlqSolace() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const queues = useMemo(() => state.data ?? [], [state.data]);
-  const detail = useMemo(
-    () => queues.find((entry) => entry.name === selected) ?? queues[0] ?? null,
-    [queues, selected],
-  );
+  const current = queues.find((entry) => entry.name === selected) ?? null;
 
   return (
     <Page>
@@ -104,114 +116,114 @@ export function DlqSolace() {
           />
         }
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.solace.dlq.name")}</TableHead>
-                    <TableHead className="num">{t("board.solace.dlq.depth")}</TableHead>
-                    <TableHead className="num">{t("board.solace.dlq.consumers")}</TableHead>
-                    <TableHead className="num">{t("board.solace.dlq.sources")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {queues.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.solace.dlq.name")}</TableHead>
+                  <TableHead className="num">{t("board.solace.dlq.depth")}</TableHead>
+                  <TableHead className="num">{t("board.solace.dlq.consumers")}</TableHead>
+                  <TableHead className="num">{t("board.solace.dlq.sources")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {queues.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate select-text">{entry.name}</span>
                         {!targetExists(entry) && (
-                          <span
-                            className="pb"
-                            style={{
-                              marginLeft: "6px",
-                              background: "var(--c-warn-bg)",
-                              color: "var(--c-warn)",
-                            }}
-                          >
-                            {t("board.solace.dlq.missingBadge")}
-                          </span>
+                          <Status tone="warn">{t("board.solace.dlq.missingBadge")}</Status>
                         )}
-                      </TableCell>
-                      <TableCell className="num">
-                        <span
-                          className="mono3"
-                          style={{
-                            ...MONO11,
-                            color: entry.depth > 0 ? "var(--c-warn)" : undefined,
-                          }}
-                        >
-                          {count(entry.depth)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.consumers)}
-                      </TableCell>
-                      <TableCell className="num">
-                        {(entry.sources ?? []).length}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      </span>
+                    </TableCell>
+                    <TableCell className={cn("num", entry.depth > 0 && "text-(--c-warn-text)")}>
+                      {count(entry.depth)}
+                    </TableCell>
+                    <TableCell className="num">{count(entry.consumers)}</TableCell>
+                    <TableCell className="num">{(entry.sources ?? []).length}</TableCell>
+                  </TableRow>
+                ))}
+                {queues.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      {t("board.solace.dlq.none")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "340px", overflow: "auto" }}>
-                <PanelHeader title={detail.name} />
-                <div style={{ padding: "10px 12px", display: "grid", gap: "8px" }}>
-                  <KV
-                    rows={[
-                      [t("board.solace.dlq.msgVpn"), detail.namespace || DASH],
-                      [t("board.solace.dlq.depth"), count(detail.depth)],
-                      [t("board.solace.dlq.consumers"), count(detail.consumers)],
-                    ]}
-                  />
-
-                  {!targetExists(detail) && (
-                    <div style={{ fontSize: "11px", color: "var(--c-warn)" }}>
-                      {t("board.solace.dlq.missingNote", { name: detail.name })}
-                    </div>
-                  )}
-                  {targetExists(detail) && detail.depth > 0 && detail.consumers === 0 && (
-                    <div style={{ fontSize: "11px", color: "var(--c-warn)" }}>
-                      {t("board.solace.dlq.nobodyDraining")}
-                    </div>
-                  )}
-                  {silentSources(detail).length > 0 && (
-                    <div style={{ fontSize: "11px", color: "var(--c-warn)" }}>
-                      {t("board.solace.dlq.markedOnlyNote", {
-                        count: silentSources(detail).length,
-                      })}
-                    </div>
-                  )}
-
-                  <SectionLabel>{t("board.solace.dlq.section.sources")}</SectionLabel>
-                  {(detail.sources ?? []).length === 0 ? (
-                    <div style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-                      {t("board.solace.dlq.noSources")}
-                    </div>
-                  ) : (
-                    <KV rows={sourceRows(detail, t)} />
-                  )}
-                </div>
-              </Panel>
-            )}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--c-muted)", paddingTop: "8px" }}>
-            {t("board.solace.dlq.note")}
-          </div>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <DeadLetterSheet
+              key={current.name}
+              entry={current}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && <StatusBar left={<span>{t("board.solace.dlq.note")}</span>} />}
     </Page>
+  );
+}
+
+export function DeadLetterSheet({
+  entry,
+  onClose,
+}: {
+  entry: DeadLetterQueue;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const silent = silentSources(entry).length;
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.name} onClose={onClose} />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.solace.dlq.depth")} value={count(entry.depth)} />
+          <MiniStat label={t("board.solace.dlq.consumers")} value={count(entry.consumers)} />
+        </div>
+
+        <KV rows={[[t("board.solace.dlq.msgVpn"), entry.namespace || DASH]]} />
+
+        {!targetExists(entry) && (
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
+            {t("board.solace.dlq.missingNote", { name: entry.name })}
+          </p>
+        )}
+        {targetExists(entry) && entry.depth > 0 && entry.consumers === 0 && (
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
+            {t("board.solace.dlq.nobodyDraining")}
+          </p>
+        )}
+        {silent > 0 && (
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
+            {t("board.solace.dlq.markedOnlyNote", { count: silent })}
+          </p>
+        )}
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.solace.dlq.section.sources")}</SectionLabel>
+          {(entry.sources ?? []).length === 0 ? (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {t("board.solace.dlq.noSources")}
+            </p>
+          ) : (
+            <KV rows={sourceRows(entry, t)} />
+          )}
+        </div>
+      </DetailPanelBody>
+    </DetailPanel>
   );
 }

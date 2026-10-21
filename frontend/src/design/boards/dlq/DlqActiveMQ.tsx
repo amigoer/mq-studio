@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -11,18 +17,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  SectionLabel,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useActiveMQDeadLetters } from "@/hooks/activemq/useActiveMQDeadLetters";
 import { useActiveMQDestinations } from "@/hooks/activemq/useActiveMQDestinations";
-import { destination as readDestination } from "@/mq/activemq/destinations";
+import { destination as readDestination, type Product } from "@/mq/activemq/destinations";
 import { formatCount } from "@/lib/format";
 import { formatErrorMessage } from "@/lib/utils";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as activemqApi from "@/api/activemq";
 import type { DeadLetterQueue } from "@bindings/model/models";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 /**
@@ -53,10 +67,7 @@ export function DlqActiveMQ() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const queues = useMemo(() => state.data ?? [], [state.data]);
-  const detail = useMemo(
-    () => queues.find((entry) => entry.name === selected) ?? queues[0] ?? null,
-    [queues, selected],
-  );
+  const current = queues.find((entry) => entry.name === selected) ?? null;
 
   // Which product answered, so the page can explain an empty sources column
   // rather than leaving it looking like missing data.
@@ -99,109 +110,122 @@ export function DlqActiveMQ() {
           />
         }
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.activemq.dlq.name")}</TableHead>
-                    <TableHead className="num">{t("board.activemq.dlq.depth")}</TableHead>
-                    <TableHead className="num">{t("board.activemq.dlq.consumers")}</TableHead>
-                    <TableHead className="num">{t("board.activemq.dlq.sources")}</TableHead>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.activemq.dlq.name")}</TableHead>
+                  <TableHead className="num">{t("board.activemq.dlq.depth")}</TableHead>
+                  <TableHead className="num">{t("board.activemq.dlq.consumers")}</TableHead>
+                  <TableHead className="num">{t("board.activemq.dlq.sources")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {queues.map((queue) => (
+                  <TableRow
+                    key={queue.name}
+                    selected={selected === queue.name}
+                    onClick={() => setSelected(queue.name)}
+                  >
+                    <TableCell className="select-text">{queue.name}</TableCell>
+                    <TableCell className="num">{formatCount(Number(queue.depth))}</TableCell>
+                    <TableCell className="num">{formatCount(queue.consumers)}</TableCell>
+                    <TableCell className="num">
+                      {/*
+                        Blank rather than 0 on Classic: nothing was
+                        counted, as against nothing pointing here.
+                      */}
+                      {product === "classic" ? DASH : formatCount(queue.sources?.length ?? 0)}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {queues.map((queue) => (
-                    <TableRow
-                      key={queue.name}
-                      data-state={detail?.name === queue.name ? "selected" : undefined}
-                      onClick={() => setSelected(queue.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {queue.name}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        {formatCount(Number(queue.depth))}
-                      </TableCell>
-                      <TableCell className="num">
-                        {formatCount(queue.consumers)}
-                      </TableCell>
-                      <TableCell className="num">
-                        <span className="tabular-nums">
-                          {/*
-                            Blank rather than 0 on Classic: nothing was
-                            counted, as against nothing pointing here.
-                          */}
-                          {product === "classic" ? DASH : formatCount(queue.sources?.length ?? 0)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                ))}
+                {queues.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      {t("board.activemq.dlq.none")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "300px", flex: "none", overflow: "auto" }}>
-                <PanelHeader title={detail.name} />
-                <div style={{ padding: "0 12px 12px" }}>
-                  <SectionLabel>{t("board.activemq.dlq.section.state")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [t("board.activemq.dlq.depth"), formatCount(Number(detail.depth))],
-                      [t("board.activemq.dlq.consumers"), formatCount(detail.consumers)],
-                    ]}
-                  />
-
-                  <SectionLabel>{t("board.activemq.dlq.section.sources")}</SectionLabel>
-                  {product === "classic" ? (
-                    <p style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-                      {t("board.activemq.dlq.noSourcesClassic")}
-                    </p>
-                  ) : (detail.sources?.length ?? 0) === 0 ? (
-                    <p style={{ fontSize: "11px", color: "var(--c-muted)" }}>
-                      {t("board.activemq.dlq.noSourcesArtemis")}
-                    </p>
-                  ) : (
-                    <KV
-                      rows={(detail.sources ?? [])
-                        .filter((source) => source != null)
-                        .map((source) => [
-                          source.queue,
-                          // Which reader of the source gave up, where the
-                          // family attaches the policy to a subscriber. Both
-                          // ActiveMQ products attach it to the destination, so
-                          // this is blank here and the column is kept because
-                          // the model is shared.
-                          source.subscription === "" ? DASH : source.subscription,
-                        ])}
-                    />
-                  )}
-
-                  <Button
-                    size="sm"
-                    style={{ marginTop: "12px" }}
-                    disabled={Number(detail.depth) === 0}
-                    onClick={() => void retry(detail)}
-                  >
-                    {t("board.activemq.dlq.retry")}
-                  </Button>
-                  <p
-                    style={{ marginTop: "8px", fontSize: "11px", color: "var(--c-muted)" }}
-                  >
-                    {t("board.activemq.dlq.retryNote")}
-                  </p>
-                </div>
-              </Panel>
-            )}
-          </div>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <DeadLetterSheet
+              key={current.name}
+              queue={current}
+              product={product}
+              onRetry={() => void retry(current)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
     </Page>
+  );
+}
+
+function DeadLetterSheet({
+  queue,
+  product,
+  onRetry,
+  onClose,
+}: {
+  queue: DeadLetterQueue;
+  product: Product | null;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={queue.name} onClose={onClose} />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.activemq.dlq.depth")} value={formatCount(Number(queue.depth))} />
+          <MiniStat label={t("board.activemq.dlq.consumers")} value={formatCount(queue.consumers)} />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.activemq.dlq.section.sources")}</SectionLabel>
+          {product === "classic" ? (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {t("board.activemq.dlq.noSourcesClassic")}
+            </p>
+          ) : (queue.sources?.length ?? 0) === 0 ? (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {t("board.activemq.dlq.noSourcesArtemis")}
+            </p>
+          ) : (
+            <KV
+              rows={(queue.sources ?? [])
+                .filter((source) => source != null)
+                .map((source) => [
+                  source.queue,
+                  // Which reader of the source gave up, where the
+                  // family attaches the policy to a subscriber. Both
+                  // ActiveMQ products attach it to the destination, so
+                  // this is blank here and the column is kept because
+                  // the model is shared.
+                  source.subscription === "" ? DASH : source.subscription,
+                ])}
+            />
+          )}
+        </div>
+
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {t("board.activemq.dlq.retryNote")}
+        </p>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <Button variant="outline" disabled={Number(queue.depth) === 0} onClick={onRetry}>
+          {t("board.activemq.dlq.retry")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

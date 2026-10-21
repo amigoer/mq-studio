@@ -70,13 +70,20 @@ vi.mock("@/hooks/googlepubsub/useGooglePubSubBrowse", () => ({
 
 let render: (element: React.ReactElement) => string;
 let TopicsGooglePubSub: typeof import("./topics/TopicsGooglePubSub").TopicsGooglePubSub;
+let TopicSheet: typeof import("./topics/TopicsGooglePubSub").TopicSheet;
 let SubscriptionsGooglePubSub: typeof import(
   "./consumers/SubscriptionsGooglePubSub"
 ).SubscriptionsGooglePubSub;
+let SubscriptionSheet: typeof import(
+  "./consumers/SubscriptionsGooglePubSub"
+).SubscriptionSheet;
 let MessagesGooglePubSub: typeof import(
   "./messages/MessagesGooglePubSub"
 ).MessagesGooglePubSub;
 let DlqGooglePubSub: typeof import("./dlq/DlqGooglePubSub").DlqGooglePubSub;
+let DeadLetterTopicSheet: typeof import("./dlq/DlqGooglePubSub").DeadLetterTopicSheet;
+let readTopic: typeof import("@/mq/googlepubsub/topics").topic;
+let readSubscription: typeof import("@/mq/googlepubsub/subscriptions").subscription;
 let ProducerGooglePubSub: typeof import(
   "./producer/ProducerGooglePubSub"
 ).ProducerGooglePubSub;
@@ -95,8 +102,21 @@ beforeAll(async () => {
   });
   vi.stubGlobal("localStorage", storage);
 
-  const [server, topics, subscriptions, messages, dlq, producer, overview, ui, i18n, settings, profiles] =
-    await Promise.all([
+  const [
+    server,
+    topics,
+    subscriptions,
+    messages,
+    dlq,
+    producer,
+    overview,
+    ui,
+    i18n,
+    settings,
+    profiles,
+    topicReader,
+    subscriptionReader,
+  ] = await Promise.all([
       import("react-dom/server"),
       import("./topics/TopicsGooglePubSub"),
       import("./consumers/SubscriptionsGooglePubSub"),
@@ -108,6 +128,8 @@ beforeAll(async () => {
       import("@/i18n"),
       import("@/hooks/useSettings"),
       import("@/hooks/useConnectionProfiles"),
+      import("@/mq/googlepubsub/topics"),
+      import("@/mq/googlepubsub/subscriptions"),
     ]);
   await i18n.default.changeLanguage("zh");
   render = (node) =>
@@ -119,12 +141,39 @@ beforeAll(async () => {
       </ui.ConfirmProvider>,
     );
   TopicsGooglePubSub = topics.TopicsGooglePubSub;
+  TopicSheet = topics.TopicSheet;
   SubscriptionsGooglePubSub = subscriptions.SubscriptionsGooglePubSub;
+  SubscriptionSheet = subscriptions.SubscriptionSheet;
   MessagesGooglePubSub = messages.MessagesGooglePubSub;
   DlqGooglePubSub = dlq.DlqGooglePubSub;
+  DeadLetterTopicSheet = dlq.DeadLetterTopicSheet;
+  readTopic = topicReader.topic;
+  readSubscription = subscriptionReader.subscription;
   ProducerGooglePubSub = producer.ProducerGooglePubSub;
   OverviewGooglePubSub = overview.OverviewGooglePubSub;
 });
+
+const noop = () => {};
+
+/** The detail sheet a row opens, rendered directly: rows start unselected. */
+const topicSheet = (row: Parameters<typeof readTopic>[0]) =>
+  render(<TopicSheet entry={readTopic(row)} onEdit={noop} onRemove={noop} onClose={noop} />);
+// The fixtures spell status as a plain string, which the generated type narrows.
+const subscriptionSheet = (row: object, snapshots: (typeof snapshot)[] = []) =>
+  render(
+    <SubscriptionSheet
+      entry={readSubscription(row as Parameters<typeof readSubscription>[0])}
+      snapshots={snapshots}
+      onEdit={noop}
+      onRemove={noop}
+      onSnapshot={noop}
+      onRestore={noop}
+      onDropSnapshot={noop}
+      onClose={noop}
+    />,
+  );
+const deadLetterSheet = (row: Parameters<typeof DeadLetterTopicSheet>[0]["entry"]) =>
+  render(<DeadLetterTopicSheet entry={row} onClose={noop} />);
 
 /**
  * A topic two subscriptions read, as
@@ -321,6 +370,7 @@ describe("the Pub/Sub topics board", () => {
     const html = render(<TopicsGooglePubSub />);
     expect(html).toContain("mqs-seed-orders");
     expect(html).toContain("mqs-seed-orders-worker");
+    expect(topicSheet(orders)).toContain("mqs-seed-orders-worker");
   });
 
   /*
@@ -330,11 +380,13 @@ describe("the Pub/Sub topics board", () => {
   it("marks a topic nothing subscribes to", () => {
     topicsState.current = stateOf({ data: [orphanedTopic] });
     expect(() => render(<TopicsGooglePubSub />)).not.toThrow();
+    expect(() => topicSheet(orphanedTopic)).not.toThrow();
   });
 
   it("renders a topic the listing could describe only partly", () => {
     topicsState.current = stateOf({ data: [bareTopic] });
     expect(() => render(<TopicsGooglePubSub />)).not.toThrow();
+    expect(() => topicSheet(bareTopic)).not.toThrow();
   });
 });
 
@@ -363,6 +415,7 @@ describe("the Pub/Sub subscriptions board", () => {
     const html = render(<SubscriptionsGooglePubSub />);
     expect(html).toContain("mqs-seed-orders-worker");
     expect(html).toContain("mqs-seed-dead-letters");
+    expect(subscriptionSheet(worker)).toContain("mqs-seed-dead-letters");
   });
 
   /*
@@ -374,6 +427,7 @@ describe("the Pub/Sub subscriptions board", () => {
     subscriptionsState.current = stateOf({ data: [orphanedSubscription] });
     snapshotsState.current = stateOf({ data: [] });
     expect(render(<SubscriptionsGooglePubSub />)).toContain("_deleted-topic_");
+    expect(subscriptionSheet(orphanedSubscription)).toContain("_deleted-topic_");
   });
 
   // The restore points are the only seek target that always works, so the
@@ -381,13 +435,14 @@ describe("the Pub/Sub subscriptions board", () => {
   it("lists the restore points on the chosen subscription's topic", () => {
     subscriptionsState.current = stateOf({ data: [worker] });
     snapshotsState.current = stateOf({ data: [snapshot] });
-    expect(render(<SubscriptionsGooglePubSub />)).toContain(snapshot.name);
+    expect(subscriptionSheet(worker, [snapshot])).toContain(snapshot.name);
   });
 
   it("renders a subscription with no restore point to offer", () => {
     subscriptionsState.current = stateOf({ data: [worker] });
     snapshotsState.current = stateOf({ data: [] });
     expect(() => render(<SubscriptionsGooglePubSub />)).not.toThrow();
+    expect(() => subscriptionSheet(worker)).not.toThrow();
   });
 });
 
@@ -497,11 +552,13 @@ describe("the Pub/Sub dead letters board", () => {
     const html = render(<DlqGooglePubSub />);
     expect(html).toContain("mqs-seed-orders");
     expect(html).toContain("mqs-seed-orders-worker");
+    expect(deadLetterSheet(deadLetterTopic)).toContain("mqs-seed-orders-worker");
   });
 
   it("marks a dead-letter topic nothing subscribes to", () => {
     deadLetterState.current = stateOf({ data: [unreadDeadLetterTopic] });
     expect(() => render(<DlqGooglePubSub />)).not.toThrow();
+    expect(() => deadLetterSheet(unreadDeadLetterTopic)).not.toThrow();
   });
 });
 

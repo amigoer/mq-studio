@@ -62,6 +62,14 @@ let TopicsNsq: typeof import("./topics/TopicsNsq").TopicsNsq;
 let ChannelsNsq: typeof import("./consumers/ChannelsNsq").ChannelsNsq;
 let ClientsNsq: typeof import("./consumers/ClientsNsq").ClientsNsq;
 let ClusterNsq: typeof import("./cluster/ClusterNsq").ClusterNsq;
+let TopicSheet: typeof import("./topics/TopicsNsq").TopicSheet;
+let ChannelSheet: typeof import("./consumers/ChannelsNsq").ChannelSheet;
+let ClientSheet: typeof import("./consumers/ClientsNsq").ClientSheet;
+let NodeSheet: typeof import("./cluster/ClusterNsq").NodeSheet;
+let readTopic: typeof import("@/mq/nsq/destinations").topic;
+let readChannel: (row: unknown) => import("@/mq/nsq/subscriptions").NsqChannel;
+let readClient: typeof import("@/mq/nsq/clients").client;
+let readNode: (row: unknown) => import("@/mq/nsq/cluster").NsqNode;
 let ProducerNsq: typeof import("./producer/ProducerNsq").ProducerNsq;
 let OverviewNsq: typeof import("./overview/OverviewNsq").OverviewNsq;
 
@@ -89,6 +97,12 @@ beforeAll(async () => {
       import("@/i18n"),
       import("@/hooks/useSettings"),
     ]);
+  const [destinationsModel, subscriptionsModel, clientsModel, clusterModel] = await Promise.all([
+    import("@/mq/nsq/destinations"),
+    import("@/mq/nsq/subscriptions"),
+    import("@/mq/nsq/clients"),
+    import("@/mq/nsq/cluster"),
+  ]);
   await i18n.default.changeLanguage("zh");
   render = (node) =>
     server.renderToStaticMarkup(
@@ -100,6 +114,16 @@ beforeAll(async () => {
   ChannelsNsq = channels.ChannelsNsq;
   ClientsNsq = clients.ClientsNsq;
   ClusterNsq = cluster.ClusterNsq;
+  TopicSheet = topics.TopicSheet;
+  ChannelSheet = channels.ChannelSheet;
+  ClientSheet = clients.ClientSheet;
+  NodeSheet = cluster.NodeSheet;
+  readTopic = destinationsModel.topic;
+  // These fixtures are loose about the wire enums, as the stubbed hooks are.
+  readChannel = (row) =>
+    subscriptionsModel.channel(row as Parameters<typeof subscriptionsModel.channel>[0]);
+  readClient = clientsModel.client;
+  readNode = (row) => clusterModel.node(row as Parameters<typeof clusterModel.node>[0]);
   ProducerNsq = producer.ProducerNsq;
   OverviewNsq = overview.OverviewNsq;
 });
@@ -337,6 +361,18 @@ describe("the NSQ topics board", () => {
     const html = render(<TopicsNsq />);
     expect(html).toContain("5");
     expect(() => render(<TopicsNsq />)).not.toThrow();
+    // No row is open until one is clicked, so the sheet is rendered on its own.
+    const sheet = render(
+      <TopicSheet
+        entry={readTopic(held)}
+        onEmpty={() => {}}
+        onRemove={() => {}}
+        onTogglePause={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(sheet).toContain("MQS.SEED.paused");
+    expect(sheet).toContain("5");
   });
 });
 
@@ -367,6 +403,17 @@ describe("the NSQ channels board", () => {
   it("renders the detail panel for a paused channel with every attribute set", () => {
     channelsState.current = stateOf({ data: [pausedChannel] });
     expect(() => render(<ChannelsNsq />)).not.toThrow();
+    expect(() =>
+      render(
+        <ChannelSheet
+          entry={readChannel(pausedChannel)}
+          onEmpty={() => {}}
+          onRemove={() => {}}
+          onTogglePause={() => {}}
+          onClose={() => {}}
+        />,
+      ),
+    ).not.toThrow();
   });
 });
 
@@ -403,10 +450,14 @@ describe("the NSQ clients board", () => {
     clientsState.current = stateOf({ data: [producer] });
     const html = render(<ClientsNsq />);
     expect(html).toContain("172.17.0.9:41120");
-    expect(html).toContain("MQS.SEED.orders=1204");
     // "Ready 0" is the badge, and a producer must not carry it.
     expect(html).not.toContain("Ready 0");
     expect(html).not.toContain("可接收 0");
+    // What it has published is read in the sheet, which opens on a click.
+    const sheet = render(<ClientSheet entry={readClient(producer)} onClose={() => {}} />);
+    expect(sheet).toContain("MQS.SEED.orders=1204");
+    expect(sheet).not.toContain("Ready 0");
+    expect(sheet).not.toContain("可接收 0");
   });
 
   it("lists both roles together", () => {
@@ -442,6 +493,10 @@ describe("the NSQ cluster board", () => {
     const html = render(<ClusterNsq />);
     expect(html).toContain("127.0.0.1:4151");
     expect(html).toContain("127.0.0.1:4161");
+    // The node's own sheet reads every attribute and the daemon's settings.
+    const sheet = render(<NodeSheet entry={readNode(nsqd)} onClose={() => {}} />);
+    expect(sheet).toContain("127.0.0.1:4151");
+    expect(sheet).toContain("1.3.0");
   });
 
   /*

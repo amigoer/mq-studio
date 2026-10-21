@@ -2,7 +2,15 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,8 +21,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  SectionLabel,
+  Status,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useGooglePubSubTopics } from "@/hooks/googlepubsub/useGooglePubSubTopics";
 import {
   discardsEverything,
@@ -26,8 +44,6 @@ import { formatErrorMessage } from "@/lib/utils";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as pubsubApi from "@/api/googlepubsub";
 import { TopicDialogGooglePubSub } from "./TopicDialogGooglePubSub";
-
-const MONO11 = { fontSize: "11px" } as const;
 
 /** A dash, not a zero: an absent figure and a measured zero are not alike. */
 const DASH = "—";
@@ -75,10 +91,7 @@ export function TopicsGooglePubSub() {
     return topics.filter((entry) => needle === "" || entry.name.toLowerCase().includes(needle));
   }, [topics, search]);
 
-  const detail = useMemo(
-    () => shown.find((entry) => entry.name === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((entry) => entry.name === selected) ?? null;
 
   const save = useCallback(
     async (input: pubsubApi.GooglePubSubTopicInput) => {
@@ -129,20 +142,14 @@ export function TopicsGooglePubSub() {
         title={t("shell.nav.google-pubsub.topics")}
         subtitle={t("board.google-pubsub.topics.count", { count: topics.length })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.google-pubsub.topics.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+          <>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
             <Button
-              size="sm"
+              disabled={!state.online}
               onClick={() => {
                 setEditing(null);
                 setFormOpen(true);
@@ -151,161 +158,187 @@ export function TopicsGooglePubSub() {
               <Plus aria-hidden />
               {t("board.google-pubsub.topics.create")}
             </Button>
-          </div>
+          </>
         }
       />
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.google-pubsub.topics.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
       <TopicDialogGooglePubSub
         open={formOpen}
         editing={editing}
         onOpenChange={setFormOpen}
         onSubmit={save}
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.google-pubsub.topics.name")}</TableHead>
-                    <TableHead className="num">
-                      {t("board.google-pubsub.topics.subscribers")}
-                    </TableHead>
-                    <TableHead>{t("board.google-pubsub.topics.retention")}</TableHead>
-                    <TableHead>{t("board.google-pubsub.topics.subscriptionNames")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.google-pubsub.topics.name")}</TableHead>
+                  <TableHead className="num">
+                    {t("board.google-pubsub.topics.subscribers")}
+                  </TableHead>
+                  <TableHead className="num">{t("board.google-pubsub.topics.retention")}</TableHead>
+                  <TableHead>{t("board.google-pubsub.topics.subscriptionNames")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate select-text">{entry.name}</span>
                         {/* Said on the row rather than only in the panel: it
                             is the one state that looks healthy everywhere
                             else, because a discarded message leaves no
                             backlog behind it. */}
                         {discardsEverything(entry) && (
-                          <span className="pb pGPS" style={{ marginLeft: "6px" }}>
+                          <Status tone="warn">
                             {t("board.google-pubsub.topics.noSubscriberBadge")}
-                          </span>
+                          </Status>
                         )}
-                      </TableCell>
-                      <TableCell className="num">
-                        {formatCount(entry.subscribers)}
-                      </TableCell>
-                      <TableCell>
-                        {duration(entry.retentionSec)}
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.subscriptionNames.join(", ") || DASH}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      </span>
+                    </TableCell>
+                    <TableCell className="num">{formatCount(entry.subscribers)}</TableCell>
+                    <TableCell className="num">{duration(entry.retentionSec)}</TableCell>
+                    <TableCell className="select-text">
+                      {entry.subscriptionNames.join(", ") || DASH}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      {topics.length === 0
+                        ? t("board.google-pubsub.topics.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <TopicDetail
-                entry={detail}
-                onEdit={() => {
-                  setEditing(detail);
-                  setFormOpen(true);
-                }}
-                onRemove={() => void remove(detail)}
-              />
-            )}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.google-pubsub.topics.note")}
-          </p>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <TopicSheet
+              key={current.name}
+              entry={current}
+              onEdit={() => {
+                setEditing(current);
+                setFormOpen(true);
+              }}
+              onRemove={() => void remove(current)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && (
+        <StatusBar left={<span>{t("board.google-pubsub.topics.note")}</span>} />
+      )}
     </Page>
   );
 }
 
-function TopicDetail({
+export function TopicSheet({
   entry,
   onEdit,
   onRemove,
+  onClose,
 }: {
   entry: PubSubTopic;
   onEdit: () => void;
   onRemove: () => void;
+  onClose: () => void;
 }) {
   const { t } = useTranslation();
   return (
-    <Panel style={{ width: "300px", flex: "none", overflow: "auto" }}>
-      <PanelHeader title={entry.name} />
-      <div style={{ padding: "0 12px 12px" }}>
-        <SectionLabel>{t("board.google-pubsub.topics.section.delivery")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.google-pubsub.topics.subscribers"), formatCount(entry.subscribers)],
-            [
-              t("board.google-pubsub.topics.subscriptionNames"),
-              entry.subscriptionNames.join(", ") || DASH,
-            ],
-            [t("board.google-pubsub.topics.retention"), duration(entry.retentionSec)],
-          ]}
-        />
-
-        <SectionLabel>{t("board.google-pubsub.topics.section.identity")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.google-pubsub.topics.path"), entry.path ?? DASH],
-            [t("board.google-pubsub.topics.state"), entry.state ?? DASH],
-            [t("board.google-pubsub.topics.schema"), entry.schema ?? DASH],
-            [t("board.google-pubsub.topics.schemaEncoding"), entry.schemaEncoding ?? DASH],
-            [t("board.google-pubsub.topics.kmsKey"), entry.kmsKey ?? DASH],
-            [
-              t("board.google-pubsub.topics.storageRegions"),
-              entry.storageRegions.join(", ") || DASH,
-            ],
-          ]}
-        />
-
-        {entry.labels.length > 0 && (
-          <>
-            <SectionLabel>{t("board.google-pubsub.topics.section.labels")}</SectionLabel>
-            <KV rows={entry.labels} />
-          </>
-        )}
-
-        <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-          <Button size="sm" variant="outline" onClick={onEdit}>
-            {t("common.edit")}
-          </Button>
-          <Button size="sm" variant="destructive" onClick={onRemove}>
-            {t("common.delete")}
-          </Button>
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.name} onClose={onClose} />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat
+            label={t("board.google-pubsub.topics.subscribers")}
+            value={formatCount(entry.subscribers)}
+          />
+          <MiniStat
+            label={t("board.google-pubsub.topics.retention")}
+            value={duration(entry.retentionSec)}
+          />
         </div>
 
         {/* Said where the number is, because a topic nothing subscribes to
             reports success on every publish and leaves nothing behind. */}
         {discardsEverything(entry) && (
-          <p style={{ marginTop: "10px", fontSize: "11px", color: "var(--c-warn)" }}>
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
             {t("board.google-pubsub.topics.noSubscriberNote")}
           </p>
         )}
-      </div>
-    </Panel>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.google-pubsub.topics.section.delivery")}
+          </SectionLabel>
+          <KV
+            rows={[
+              [
+                t("board.google-pubsub.topics.subscriptionNames"),
+                entry.subscriptionNames.join(", ") || DASH,
+              ],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.google-pubsub.topics.section.identity")}
+          </SectionLabel>
+          <KV
+            rows={[
+              [t("board.google-pubsub.topics.path"), entry.path ?? DASH],
+              [t("board.google-pubsub.topics.state"), entry.state ?? DASH],
+              [t("board.google-pubsub.topics.schema"), entry.schema ?? DASH],
+              [t("board.google-pubsub.topics.schemaEncoding"), entry.schemaEncoding ?? DASH],
+              [t("board.google-pubsub.topics.kmsKey"), entry.kmsKey ?? DASH],
+              [
+                t("board.google-pubsub.topics.storageRegions"),
+                entry.storageRegions.join(", ") || DASH,
+              ],
+            ]}
+          />
+        </div>
+
+        {entry.labels.length > 0 && (
+          <div>
+            <SectionLabel className="mb-1.5">
+              {t("board.google-pubsub.topics.section.labels")}
+            </SectionLabel>
+            <KV rows={entry.labels} />
+          </div>
+        )}
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <Button variant="outline" onClick={onEdit}>
+          {t("common.edit")}
+        </Button>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onRemove}>
+          {t("common.delete")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

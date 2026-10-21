@@ -2,7 +2,15 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,8 +21,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  SectionLabel,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useActiveMQSubscriptions } from "@/hooks/activemq/useActiveMQSubscriptions";
 import { useActiveMQDestinations } from "@/hooks/activemq/useActiveMQDestinations";
 import {
@@ -28,7 +45,6 @@ import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as activemqApi from "@/api/activemq";
 import { SubscriptionDialogActiveMQ } from "./SubscriptionDialogActiveMQ";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 function count(value: number | null): string {
@@ -86,10 +102,7 @@ export function SubscriptionsActiveMQ() {
     );
   }, [subscriptions, search]);
 
-  const detail = useMemo(
-    () => shown.find((entry) => entry.name === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((entry) => entry.name === selected) ?? null;
 
   const create = useCallback(
     async (topic: string, name: string, selector: string) => {
@@ -134,25 +147,27 @@ export function SubscriptionsActiveMQ() {
           attached: subscriptions.filter((entry) => entry.active).length,
         })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.activemq.subscriptions.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+          <>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
-            <Button size="sm" onClick={() => setCreating(true)}>
+            <Button disabled={!state.online} onClick={() => setCreating(true)}>
               <Plus aria-hidden />
               {t("board.activemq.subscriptions.create")}
             </Button>
-          </div>
+          </>
         }
       />
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.activemq.subscriptions.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
       <SubscriptionDialogActiveMQ
         open={creating}
         onOpenChange={setCreating}
@@ -160,138 +175,158 @@ export function SubscriptionsActiveMQ() {
         product={subscriptions[0]?.product ?? "artemis"}
         onCreate={create}
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.activemq.subscriptions.name")}</TableHead>
-                    <TableHead>{t("board.activemq.subscriptions.topic")}</TableHead>
-                    <TableHead>{t("board.activemq.subscriptions.state")}</TableHead>
-                    <TableHead className="num">
-                      {t("board.activemq.subscriptions.backlog")}
-                    </TableHead>
-                    <TableHead className="num">
-                      {t("board.activemq.subscriptions.pendingAck")}
-                    </TableHead>
-                    <TableHead className="num">
-                      {t("board.activemq.subscriptions.consumed")}
-                    </TableHead>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.activemq.subscriptions.name")}</TableHead>
+                  <TableHead>{t("board.activemq.subscriptions.topic")}</TableHead>
+                  <TableHead>{t("board.activemq.subscriptions.state")}</TableHead>
+                  <TableHead className="num">{t("board.activemq.subscriptions.backlog")}</TableHead>
+                  <TableHead className="num">
+                    {t("board.activemq.subscriptions.pendingAck")}
+                  </TableHead>
+                  <TableHead className="num">{t("board.activemq.subscriptions.consumed")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell className="select-text">
+                      {entry.subscriptionName ?? entry.name}
+                    </TableCell>
+                    <TableCell className="select-text">{entry.topic}</TableCell>
+                    <TableCell>
+                      {/*
+                        Detached is the resting state, so it is worded as
+                        waiting rather than coloured as broken. Slow is the
+                        one that is a problem.
+                      */}
+                      {entry.slow === true
+                        ? t("board.activemq.subscriptions.slow")
+                        : entry.active
+                          ? t("board.activemq.subscriptions.attached")
+                          : t("board.activemq.subscriptions.waiting")}
+                    </TableCell>
+                    <TableCell className="num">{count(entry.backlog)}</TableCell>
+                    <TableCell className="num">{count(entry.pendingAck)}</TableCell>
+                    <TableCell className="num">{count(entry.consumed)}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.subscriptionName ?? entry.name}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.topic}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {/*
-                          Detached is the resting state, so it is worded as
-                          waiting rather than coloured as broken. Slow is the
-                          one that is a problem.
-                        */}
-                        {entry.slow === true
-                          ? t("board.activemq.subscriptions.slow")
-                          : entry.active
-                            ? t("board.activemq.subscriptions.attached")
-                            : t("board.activemq.subscriptions.waiting")}
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.backlog)}
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.pendingAck)}
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.consumed)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                      {subscriptions.length === 0
+                        ? t("board.activemq.subscriptions.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "300px", flex: "none", overflow: "auto" }}>
-                <PanelHeader title={detail.subscriptionName ?? detail.name} />
-                <div style={{ padding: "0 12px 12px" }}>
-                  <SectionLabel>{t("board.activemq.subscriptions.section.state")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [t("board.activemq.subscriptions.topic"), detail.topic],
-                      [t("board.activemq.subscriptions.backlog"), count(detail.backlog)],
-                      [t("board.activemq.subscriptions.pendingAck"), count(detail.pendingAck)],
-                      [t("board.activemq.subscriptions.dispatched"), count(detail.dispatched)],
-                      [t("board.activemq.subscriptions.consumed"), count(detail.consumed)],
-                      [
-                        t("board.activemq.subscriptions.members"),
-                        formatCount(detail.members),
-                      ],
-                    ]}
-                  />
-
-                  <SectionLabel>
-                    {t("board.activemq.subscriptions.section.identity")}
-                  </SectionLabel>
-                  <KV
-                    rows={[
-                      // Classic identifies a subscription by the client that
-                      // registered it; Artemis by the queue's own name, and
-                      // has no client id to show.
-                      [t("board.activemq.subscriptions.clientId"), detail.clientId ?? DASH],
-                      [t("board.activemq.subscriptions.selector"), detail.selector ?? DASH],
-                      [
-                        t("board.activemq.subscriptions.durable"),
-                        detail.durable == null
-                          ? DASH
-                          : detail.durable
-                            ? t("common.yes")
-                            : t("common.no"),
-                      ],
-                      [
-                        t("board.activemq.subscriptions.deadLetterAddress"),
-                        detail.deadLetterAddress ?? DASH,
-                      ],
-                      [t("board.activemq.subscriptions.prefetch"), count(detail.prefetch)],
-                    ]}
-                  />
-
-                  <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-                    <Button size="sm" variant="destructive" onClick={() => void remove(detail)}>
-                      {t("board.activemq.subscriptions.unsubscribe")}
-                    </Button>
-                  </div>
-                </div>
-              </Panel>
-            )}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.activemq.subscriptions.note")}
-          </p>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <SubscriptionSheet
+              key={current.name}
+              entry={current}
+              onUnsubscribe={() => void remove(current)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && (
+        <StatusBar left={<span>{t("board.activemq.subscriptions.note")}</span>} />
+      )}
     </Page>
+  );
+}
+
+function SubscriptionSheet({
+  entry,
+  onUnsubscribe,
+  onClose,
+}: {
+  entry: ActiveMQSubscription;
+  onUnsubscribe: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.subscriptionName ?? entry.name} onClose={onClose} />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat
+            label={t("board.activemq.subscriptions.backlog")}
+            value={count(entry.backlog)}
+          />
+          <MiniStat
+            label={t("board.activemq.subscriptions.pendingAck")}
+            value={count(entry.pendingAck)}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.activemq.subscriptions.section.state")}
+          </SectionLabel>
+          <KV
+            rows={[
+              [
+                t("board.activemq.subscriptions.topic"),
+                <span className="select-text">{entry.topic}</span>,
+              ],
+              [t("board.activemq.subscriptions.dispatched"), count(entry.dispatched)],
+              [t("board.activemq.subscriptions.consumed"), count(entry.consumed)],
+              [t("board.activemq.subscriptions.members"), formatCount(entry.members)],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.activemq.subscriptions.section.identity")}
+          </SectionLabel>
+          <KV
+            rows={[
+              // Classic identifies a subscription by the client that
+              // registered it; Artemis by the queue's own name, and
+              // has no client id to show.
+              [t("board.activemq.subscriptions.clientId"), entry.clientId ?? DASH],
+              [t("board.activemq.subscriptions.selector"), entry.selector ?? DASH],
+              [
+                t("board.activemq.subscriptions.durable"),
+                entry.durable == null
+                  ? DASH
+                  : entry.durable
+                    ? t("common.yes")
+                    : t("common.no"),
+              ],
+              [
+                t("board.activemq.subscriptions.deadLetterAddress"),
+                entry.deadLetterAddress ?? DASH,
+              ],
+              [t("board.activemq.subscriptions.prefetch"), count(entry.prefetch)],
+            ]}
+          />
+        </div>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onUnsubscribe}>
+          {t("board.activemq.subscriptions.unsubscribe")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

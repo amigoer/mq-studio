@@ -69,6 +69,7 @@ let ProducerMqtt: typeof import("./producer/ProducerMqtt").ProducerMqtt;
 let ClientsMqtt: typeof import("./consumers/ClientsMqtt").ClientsMqtt;
 let TopicsMqtt: typeof import("./topics/TopicsMqtt").TopicsMqtt;
 let NodesMqtt: typeof import("./cluster/NodesMqtt").NodesMqtt;
+let NodeSheet: typeof import("./cluster/NodesMqtt").NodeSheet;
 
 beforeAll(async () => {
   const storage = { getItem: () => null, setItem() {}, removeItem() {} };
@@ -109,6 +110,7 @@ beforeAll(async () => {
   ClientsMqtt = clients.ClientsMqtt;
   TopicsMqtt = topics.TopicsMqtt;
   NodesMqtt = cluster.NodesMqtt;
+  NodeSheet = cluster.NodeSheet;
 });
 
 /** A stream as the hook reports it. */
@@ -574,8 +576,13 @@ describe("the MQTT cluster board", () => {
 
     expect(html).toContain("emqx@127.0.0.1");
     expect(html).toContain("core");
-    expect(html).toContain("7.07G");
     expect(html).toContain("集群自己给出的列表");
+
+    // The memory figure lives in the node sheet, which opens on a row click
+    // and so is rendered directly from the same fixture.
+    const node = emqxCluster.nodes[0] as unknown as Parameters<typeof NodeSheet>[0]["node"];
+    const sheet = render(<NodeSheet node={node} enumerated onClose={() => {}} />);
+    expect(sheet).toContain("7.07G");
   });
 
   it("renders while the broker is still being read", () => {

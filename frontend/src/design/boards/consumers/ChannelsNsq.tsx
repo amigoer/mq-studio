@@ -2,7 +2,15 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,8 +21,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, Status, useConfirm } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  OutlineTag,
+  SectionLabel,
+  Status,
+  useConfirm,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useNsqSubscriptions } from "@/hooks/nsq/useNsqSubscriptions";
 import {
   channel as readChannel,
@@ -27,8 +46,6 @@ import { formatErrorMessage } from "@/lib/utils";
 import { useConnectionScope } from "@/mq/ConnectionScope";
 import * as nsqApi from "@/api/nsq";
 import { ChannelDialogNsq } from "./ChannelDialogNsq";
-
-const MONO11 = { fontSize: "11px" } as const;
 
 /** A dash, not a zero: an absent figure and a measured zero are not alike. */
 const DASH = "—";
@@ -75,10 +92,7 @@ export function ChannelsNsq() {
     );
   }, [channels, search]);
 
-  const detail = useMemo(
-    () => shown.find((entry) => channelKey(entry) === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((entry) => channelKey(entry) === selected) ?? null;
 
   const create = useCallback(
     async (topic: string, name: string) => {
@@ -160,179 +174,181 @@ export function ChannelsNsq() {
         title={t("shell.nav.nsq.consumers")}
         subtitle={t("board.nsq.channels.count", { count: channels.length })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.nsq.channels.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+          <>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
-            <Button size="sm" onClick={() => setCreating(true)}>
+            <Button disabled={!state.online} onClick={() => setCreating(true)}>
               <Plus aria-hidden />
               {t("board.nsq.channels.create")}
             </Button>
-          </div>
+          </>
         }
       />
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.nsq.channels.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
       <ChannelDialogNsq open={creating} onOpenChange={setCreating} onCreate={create} />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.nsq.channels.name")}</TableHead>
-                    <TableHead>{t("board.nsq.channels.topic")}</TableHead>
-                    <TableHead className="num">{t("board.nsq.channels.backlog")}</TableHead>
-                    <TableHead className="num">{t("board.nsq.channels.inFlight")}</TableHead>
-                    <TableHead className="num">{t("board.nsq.channels.deferred")}</TableHead>
-                    <TableHead className="num">{t("board.nsq.channels.clients")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((entry) => (
-                    <TableRow
-                      key={channelKey(entry)}
-                      data-state={
-                        detail != null && channelKey(detail) === channelKey(entry)
-                          ? "selected"
-                          : undefined
-                      }
-                      onClick={() => setSelected(channelKey(entry))}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.nsq.channels.name")}</TableHead>
+                  <TableHead>{t("board.nsq.channels.topic")}</TableHead>
+                  <TableHead className="num">{t("board.nsq.channels.backlog")}</TableHead>
+                  <TableHead className="num">{t("board.nsq.channels.inFlight")}</TableHead>
+                  <TableHead className="num">{t("board.nsq.channels.deferred")}</TableHead>
+                  <TableHead className="num">{t("board.nsq.channels.clients")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((entry) => (
+                  <TableRow
+                    key={channelKey(entry)}
+                    selected={selected === channelKey(entry)}
+                    onClick={() => setSelected(channelKey(entry))}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate select-text">{entry.name}</span>
                         {entry.paused ? (
-                          <Status tone="warn" style={{ fontSize: "10px", marginLeft: "6px" }}>
-                            {t("board.nsq.channels.pausedBadge")}
-                          </Status>
+                          <Status tone="warn">{t("board.nsq.channels.pausedBadge")}</Status>
                         ) : (
                           entry.clients === 0 && (
-                            <Status tone="off" style={{ fontSize: "10px", marginLeft: "6px" }}>
-                              {t("board.nsq.channels.idleBadge")}
-                            </Status>
+                            <Status tone="off">{t("board.nsq.channels.idleBadge")}</Status>
                           )
                         )}
                         {entry.ephemeral && (
-                          <Status tone="off" style={{ fontSize: "10px", marginLeft: "6px" }}>
-                            {t("board.nsq.channels.ephemeralBadge")}
-                          </Status>
+                          <OutlineTag>{t("board.nsq.channels.ephemeralBadge")}</OutlineTag>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.topic}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.backlog)}
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.inFlight)}
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.deferred)}
-                      </TableCell>
-                      <TableCell className="num">
-                        {entry.clients}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      </span>
+                    </TableCell>
+                    <TableCell className="select-text">{entry.topic}</TableCell>
+                    <TableCell className="num">{count(entry.backlog)}</TableCell>
+                    <TableCell className="num">{count(entry.inFlight)}</TableCell>
+                    <TableCell className="num">{count(entry.deferred)}</TableCell>
+                    <TableCell className="num">{entry.clients}</TableCell>
+                  </TableRow>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                      {channels.length === 0
+                        ? t("board.nsq.channels.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <ChannelDetail
-                entry={detail}
-                onEmpty={() => void empty(detail)}
-                onRemove={() => void remove(detail)}
-                onTogglePause={() => void pause(detail)}
-              />
-            )}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.nsq.channels.note")}
-          </p>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <ChannelSheet
+              key={channelKey(current)}
+              entry={current}
+              onEmpty={() => void empty(current)}
+              onRemove={() => void remove(current)}
+              onTogglePause={() => void pause(current)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && <StatusBar left={<span>{t("board.nsq.channels.note")}</span>} />}
     </Page>
   );
 }
 
-function ChannelDetail({
+export function ChannelSheet({
   entry,
   onEmpty,
   onRemove,
   onTogglePause,
+  onClose,
 }: {
   entry: NsqChannel;
   onEmpty: () => void;
   onRemove: () => void;
   onTogglePause: () => void;
+  onClose: () => void;
 }) {
   const { t } = useTranslation();
   return (
-    <Panel style={{ width: "300px", flex: "none", overflow: "auto" }}>
-      <PanelHeader title={entry.name} />
-      <div style={{ padding: "0 12px 12px" }}>
-        <SectionLabel>{t("board.nsq.channels.section.backlog")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.nsq.channels.topic"), entry.topic],
-            [t("board.nsq.channels.backlog"), count(entry.backlog)],
-            [t("board.nsq.channels.backendDepth"), count(entry.backendDepth)],
-            [t("board.nsq.channels.inFlight"), count(entry.inFlight)],
-            [t("board.nsq.channels.deferred"), count(entry.deferred)],
-          ]}
-        />
-
-        <SectionLabel>{t("board.nsq.channels.section.delivery")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.nsq.channels.messages"), count(entry.messages)],
-            [t("board.nsq.channels.requeued"), count(entry.requeued)],
-            [t("board.nsq.channels.timedOut"), count(entry.timedOut)],
-            [t("board.nsq.channels.clients"), String(entry.clients)],
-            [t("board.nsq.channels.nodes"), entry.nodes.join(", ") || DASH],
-          ]}
-        />
-
-        <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-          <Button size="sm" variant="outline" onClick={onTogglePause}>
-            {t(entry.paused ? "board.nsq.channels.resumeAction" : "board.nsq.channels.pauseAction")}
-          </Button>
-          <Button size="sm" variant="destructive" onClick={onEmpty}>
-            {t("board.nsq.channels.emptyAction")}
-          </Button>
-          <Button size="sm" variant="destructive" onClick={onRemove}>
-            {t("common.delete")}
-          </Button>
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader
+        title={entry.name}
+        badge={
+          <>
+            {entry.paused && <Status tone="warn">{t("board.nsq.channels.pausedBadge")}</Status>}
+            {entry.ephemeral && <OutlineTag>{t("board.nsq.channels.ephemeralBadge")}</OutlineTag>}
+          </>
+        }
+        onClose={onClose}
+      />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.nsq.channels.backlog")} value={count(entry.backlog)} />
+          <MiniStat label={t("board.nsq.channels.inFlight")} value={count(entry.inFlight)} />
         </div>
 
         {/* The one backlog with no consumer to look at. */}
         {stalledByPause(entry) && (
-          <p style={{ marginTop: "10px", fontSize: "11px", color: "var(--c-muted)" }}>
+          <p className="text-xs leading-relaxed text-muted-foreground">
             {t("board.nsq.channels.stalled", { count: entry.backlog ?? 0 })}
           </p>
         )}
-      </div>
-    </Panel>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.nsq.channels.section.backlog")}</SectionLabel>
+          <KV
+            rows={[
+              [
+                t("board.nsq.channels.topic"),
+                <span className="select-text">{entry.topic}</span>,
+              ],
+              [t("board.nsq.channels.backendDepth"), count(entry.backendDepth)],
+              [t("board.nsq.channels.deferred"), count(entry.deferred)],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.nsq.channels.section.delivery")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.nsq.channels.messages"), count(entry.messages)],
+              [t("board.nsq.channels.requeued"), count(entry.requeued)],
+              [t("board.nsq.channels.timedOut"), count(entry.timedOut)],
+              [t("board.nsq.channels.clients"), String(entry.clients)],
+              [t("board.nsq.channels.nodes"), entry.nodes.join(", ") || DASH],
+            ]}
+          />
+        </div>
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <Button variant="outline" onClick={onTogglePause}>
+          {t(entry.paused ? "board.nsq.channels.resumeAction" : "board.nsq.channels.pauseAction")}
+        </Button>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onEmpty}>
+          {t("board.nsq.channels.emptyAction")}
+        </Button>
+        <Button variant="destructive" onClick={onRemove}>
+          {t("common.delete")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

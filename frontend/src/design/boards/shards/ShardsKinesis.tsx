@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -16,15 +17,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelHeader,
+  KV,
+  SectionLabel,
+  SelectField,
+  Status,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useKinesisDestinations } from "@/hooks/kinesis/useKinesisDestinations";
 import { useKinesisShards } from "@/hooks/kinesis/useKinesisShards";
 import { stream as readStream } from "@/mq/kinesis/destinations";
 import { childrenOf, keyShare, openCount, parentsOf, type Shard } from "@/mq/kinesis/shards";
 import { formatCount } from "@/lib/format";
-
-const MONO11 = { fontSize: "11px" } as const;
 
 /** A dash, not a zero: an absent figure and a measured zero are not alike. */
 const DASH = "—";
@@ -71,10 +78,7 @@ export function ShardsKinesis() {
   }, [names, stream]);
 
   const shards = useKinesisShards(stream);
-  const detail = useMemo(
-    () => shards.shards.find((entry) => entry.id === selected) ?? shards.shards[0] ?? null,
-    [shards.shards, selected],
-  );
+  const current = shards.shards.find((entry) => entry.id === selected) ?? null;
 
   const open = openCount(shards.shards);
   const closed = shards.shards.length - open;
@@ -88,152 +92,161 @@ export function ShardsKinesis() {
           closed: formatCount(closed),
         })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Select value={stream ?? ""} onValueChange={(next: string) => setStream(next)}>
-              <SelectTrigger size="sm" style={{ width: "220px" }}>
-                <SelectValue placeholder={t("board.kinesis.shards.pickStream")} />
-              </SelectTrigger>
-              <SelectContent>
-                {names.map((name) => (
-                  <SelectItem key={name} value={name}>
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <RefreshButton
-              refreshing={shards.loading}
-              online={streams.online}
-              onClick={() => void shards.refresh()}
-            />
-          </div>
+          <RefreshButton
+            refreshing={shards.loading}
+            online={streams.online}
+            onClick={() => void shards.refresh()}
+          />
         }
       />
-      <BoardState state={streams}>
-        <PageBody>
-          {shards.error != null && (
-            <p style={{ margin: "0 20px", fontSize: "11.5px", color: "var(--c-err)" }}>
-              {shards.error}
-            </p>
-          )}
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.kinesis.shards.id")}</TableHead>
-                    <TableHead>{t("board.kinesis.shards.state")}</TableHead>
-                    <TableHead className="num">{t("board.kinesis.shards.keyShare")}</TableHead>
-                    <TableHead>{t("board.kinesis.shards.parents")}</TableHead>
+      <Toolbar>
+        <SelectField
+          className="w-[220px]"
+          value={stream ?? ""}
+          placeholder={t("board.kinesis.shards.pickStream")}
+          // Shard ids repeat from one stream to the next, so a selection
+          // cannot follow the switch.
+          onValueChange={(next) => {
+            setStream(next);
+            setSelected(null);
+          }}
+          options={names.map((name) => ({ value: name }))}
+        />
+      </Toolbar>
+      {isBlocked(streams) ? (
+        <BoardState state={streams} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.kinesis.shards.id")}</TableHead>
+                  <TableHead>{t("board.kinesis.shards.state")}</TableHead>
+                  <TableHead className="num">{t("board.kinesis.shards.keyShare")}</TableHead>
+                  <TableHead>{t("board.kinesis.shards.parents")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shards.shards.map((entry) => (
+                  <TableRow
+                    key={entry.id}
+                    selected={selected === entry.id}
+                    onClick={() => setSelected(entry.id)}
+                  >
+                    <TableCell className="select-text">{entry.id}</TableCell>
+                    <TableCell>
+                      <ShardState entry={entry} />
+                    </TableCell>
+                    <TableCell className="num">{share(keyShare(entry))}</TableCell>
+                    <TableCell className="select-text">
+                      {parentsOf(entry).join(", ") || DASH}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shards.shards.map((entry) => (
-                    <TableRow
-                      key={entry.id}
-                      data-state={detail?.id === entry.id ? "selected" : undefined}
-                      onClick={() => setSelected(entry.id)}
-                      style={{ cursor: "pointer" }}
+                ))}
+                {shards.shards.length === 0 && !shards.loading && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className={
+                        "py-8 text-center " +
+                        (shards.error != null ? "text-(--c-err)" : "text-muted-foreground")
+                      }
                     >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.id}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className="mono3"
-                          style={{ ...MONO11, color: entry.closed ? "var(--c-muted)" : undefined }}
-                        >
-                          {t(
-                            entry.closed
-                              ? "board.kinesis.shards.closed"
-                              : "board.kinesis.shards.open",
-                          )}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        {share(keyShare(entry))}
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {parentsOf(entry).join(", ") || DASH}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      {shards.error ?? t("board.kinesis.shards.none")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && <ShardDetail entry={detail} shards={shards.shards} />}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.kinesis.shards.note")}
-          </p>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <ShardSheet
+              key={current.id}
+              entry={current}
+              shards={shards.shards}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(streams) && <StatusBar left={<span>{t("board.kinesis.shards.note")}</span>} />}
     </Page>
   );
 }
 
-function ShardDetail({ entry, shards }: { entry: Shard; shards: Shard[] }) {
+function ShardState({ entry }: { entry: Shard }) {
+  const { t } = useTranslation();
+  return entry.closed ? (
+    <Status tone="off">{t("board.kinesis.shards.closed")}</Status>
+  ) : (
+    <Status tone="ok">{t("board.kinesis.shards.open")}</Status>
+  );
+}
+
+function ShardSheet({
+  entry,
+  shards,
+  onClose,
+}: {
+  entry: Shard;
+  shards: Shard[];
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
   const children = childrenOf(shards, entry.id);
   const parents = parentsOf(entry);
 
   return (
-    <Panel style={{ width: "320px", flex: "none", overflow: "auto" }}>
-      <PanelHeader title={entry.id} />
-      <div style={{ padding: "0 12px 12px" }}>
-        <SectionLabel>{t("board.kinesis.shards.section.range")}</SectionLabel>
-        <KV
-          rows={[
-            [
-              t("board.kinesis.shards.state"),
-              t(entry.closed ? "board.kinesis.shards.closed" : "board.kinesis.shards.open"),
-            ],
-            [t("board.kinesis.shards.keyShare"), share(keyShare(entry))],
-            [t("board.kinesis.shards.startHashKey"), entry.startHashKey || DASH],
-            [t("board.kinesis.shards.endHashKey"), entry.endHashKey || DASH],
-          ]}
-        />
-
-        <SectionLabel>{t("board.kinesis.shards.section.sequence")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.kinesis.shards.startSequence"), entry.startSequence || DASH],
-            [t("board.kinesis.shards.endSequence"), entry.endSequence || DASH],
-          ]}
-        />
-
-        <SectionLabel>{t("board.kinesis.shards.section.lineage")}</SectionLabel>
-        <KV
-          rows={[
-            [t("board.kinesis.shards.parents"), parents.join(", ") || DASH],
-            [
-              t("board.kinesis.shards.children"),
-              children.map((child) => child.id).join(", ") || DASH,
-            ],
-          ]}
-        />
-
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.id} badge={<ShardState entry={entry} />} onClose={onClose} />
+      <DetailPanelBody>
         {/* Said where the row is, because a closed shard reads as gone and is
             not: it holds its records until retention expires, and a consumer
             that skipped it skipped them. */}
         {entry.closed && (
-          <p style={{ marginTop: "10px", fontSize: "11px", color: "var(--c-warn)" }}>
+          <p className="text-xs leading-relaxed text-muted-foreground">
             {t("board.kinesis.shards.closedNote")}
           </p>
         )}
-      </div>
-    </Panel>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.kinesis.shards.section.range")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.kinesis.shards.keyShare"), share(keyShare(entry))],
+              [t("board.kinesis.shards.startHashKey"), entry.startHashKey || DASH],
+              [t("board.kinesis.shards.endHashKey"), entry.endHashKey || DASH],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">
+            {t("board.kinesis.shards.section.sequence")}
+          </SectionLabel>
+          <KV
+            rows={[
+              [t("board.kinesis.shards.startSequence"), entry.startSequence || DASH],
+              [t("board.kinesis.shards.endSequence"), entry.endSequence || DASH],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.kinesis.shards.section.lineage")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.kinesis.shards.parents"), parents.join(", ") || DASH],
+              [
+                t("board.kinesis.shards.children"),
+                children.map((child) => child.id).join(", ") || DASH,
+              ],
+            ]}
+          />
+        </div>
+      </DetailPanelBody>
+    </DetailPanel>
   );
 }

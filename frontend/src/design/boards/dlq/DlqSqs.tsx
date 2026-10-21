@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+} from "@/design/shell";
 import {
   Table,
   TableBody,
@@ -9,16 +16,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  SectionLabel,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useSqsDeadLetters } from "@/hooks/sqs/useSqsDeadLetters";
 import { formatCount } from "@/lib/format";
+import type { DeadLetterQueue } from "@bindings/model/models";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 function count(value: number): string {
   return value < 0 ? DASH : formatCount(value);
+}
+
+// The bridge types every element as nullable; a source row with nothing in
+// it is not a source, so it is dropped rather than drawn as a blank name.
+function sourcesOf(entry: DeadLetterQueue): string[] {
+  return (entry.sources ?? []).flatMap((source) => (source?.queue ? [source.queue] : []));
 }
 
 /**
@@ -45,14 +65,7 @@ export function DlqSqs() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const queues = useMemo(() => state.data ?? [], [state.data]);
-  // The bridge types every element as nullable; a source row with nothing in
-  // it is not a source, so it is dropped rather than drawn as a blank name.
-  const sourcesOf = (entry: (typeof queues)[number]): string[] =>
-    (entry.sources ?? []).flatMap((source) => (source?.queue ? [source.queue] : []));
-  const detail = useMemo(
-    () => queues.find((entry) => entry.name === selected) ?? queues[0] ?? null,
-    [queues, selected],
-  );
+  const current = queues.find((entry) => entry.name === selected) ?? null;
 
   return (
     <Page>
@@ -67,90 +80,92 @@ export function DlqSqs() {
           />
         }
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.sqs.dlq.name")}</TableHead>
-                    <TableHead className="num">{t("board.sqs.dlq.depth")}</TableHead>
-                    <TableHead>{t("board.sqs.dlq.sources")}</TableHead>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.sqs.dlq.name")}</TableHead>
+                  <TableHead className="num">{t("board.sqs.dlq.depth")}</TableHead>
+                  <TableHead>{t("board.sqs.dlq.sources")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {queues.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="num">{count(entry.depth)}</TableCell>
+                    <TableCell className="select-text">
+                      {sourcesOf(entry).length === 0
+                        ? t("board.sqs.dlq.noSources")
+                        : sourcesOf(entry).join(", ")}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {queues.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
-                      </TableCell>
-                      <TableCell className="num">
-                        {count(entry.depth)}
-                      </TableCell>
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {sourcesOf(entry).length === 0
-                            ? t("board.sqs.dlq.noSources")
-                            : sourcesOf(entry).join(", ")}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                ))}
+                {queues.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                      {t("board.sqs.dlq.none")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "300px", flex: "none", overflow: "auto" }}>
-                <PanelHeader title={detail.name} />
-                <div style={{ padding: "0 12px 12px" }}>
-                  <KV
-                    rows={[
-                      [t("board.sqs.dlq.depth"), count(detail.depth)],
-                      [t("board.sqs.dlq.sourceCount"), String(sourcesOf(detail).length)],
-                    ]}
-                  />
-
-                  <SectionLabel>{t("board.sqs.dlq.sources")}</SectionLabel>
-                  {sourcesOf(detail).length === 0 ? (
-                    <p style={{ fontSize: "11px", color: "var(--c-warn-text)", margin: 0 }}>
-                      {/* The state worth naming: a backlog whose producers are
-                          gone will never receive anything again and will never
-                          drain by itself. */}
-                      {t("board.sqs.dlq.orphaned")}
-                    </p>
-                  ) : (
-                    <KV
-                      rows={sourcesOf(detail).map((source) => [
-                        source,
-                        t("board.sqs.dlq.redrivesHere"),
-                      ])}
-                    />
-                  )}
-                </div>
-              </Panel>
-            )}
-          </div>
-          <p
-            style={{
-              margin: "0 20px",
-              fontSize: "11.5px",
-              color: "var(--c-muted)",
-              flex: "none",
-            }}
-          >
-            {t("board.sqs.dlq.note")}
-          </p>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <DeadLetterSheet
+              key={current.name}
+              entry={current}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && <StatusBar left={<span>{t("board.sqs.dlq.note")}</span>} />}
     </Page>
+  );
+}
+
+export function DeadLetterSheet({
+  entry,
+  onClose,
+}: {
+  entry: DeadLetterQueue;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const sources = sourcesOf(entry);
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.name} onClose={onClose} />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.sqs.dlq.depth")} value={count(entry.depth)} />
+          <MiniStat label={t("board.sqs.dlq.sourceCount")} value={sources.length} />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.sqs.dlq.sources")}</SectionLabel>
+          {sources.length === 0 ? (
+            <p className="text-xs leading-relaxed text-(--c-warn-text)">
+              {/* The state worth naming: a backlog whose producers are
+                  gone will never receive anything again and will never
+                  drain by itself. */}
+              {t("board.sqs.dlq.orphaned")}
+            </p>
+          ) : (
+            <KV rows={sources.map((source) => [source, t("board.sqs.dlq.redrivesHere")])} />
+          )}
+        </div>
+      </DetailPanelBody>
+    </DetailPanel>
   );
 }

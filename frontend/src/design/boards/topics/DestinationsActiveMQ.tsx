@@ -1,9 +1,16 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Table,
   TableBody,
@@ -12,10 +19,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel, useConfirm } from "@/components";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelFooter,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  OutlineTag,
+  SectionLabel,
+  Segmented,
+  Status,
+  useConfirm,
+} from "@/components";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { BoardState } from "@/design/boards/BoardState";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useActiveMQDestinations } from "@/hooks/activemq/useActiveMQDestinations";
 import {
   browseWillBeCapped,
@@ -32,8 +51,6 @@ import {
   MoveDialogActiveMQ,
 } from "./DestinationDialogActiveMQ";
 
-const MONO11 = { fontSize: "11px" } as const;
-
 /**
  * A dash, not a zero.
  *
@@ -47,15 +64,9 @@ function count(value: number | null): string {
   return value == null ? DASH : formatCount(value);
 }
 
-function Cell({ value }: { value: number | null }) {
-  return (
-    <span className="tabular-nums">
-      {count(value)}
-    </span>
-  );
-}
-
 type KindFilter = "all" | DestinationKind;
+
+const KIND_FILTERS = ["all", "queue", "topic"] as const;
 
 /**
  * ActiveMQ destinations - queues and topics, from either product.
@@ -96,10 +107,12 @@ export function DestinationsActiveMQ() {
     });
   }, [destinations, search, kind]);
 
-  const detail = useMemo(
-    () => shown.find((entry) => entry.name === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((entry) => entry.name === selected) ?? null;
+  const counts = {
+    all: destinations.length,
+    queue: destinations.filter((entry) => entry.kind === "queue").length,
+    topic: destinations.filter((entry) => entry.kind === "topic").length,
+  };
 
   // Which product answered decides what the table can show, and every row on
   // one connection comes from the same broker.
@@ -180,44 +193,39 @@ export function DestinationsActiveMQ() {
       <PageHeader
         title={t("shell.nav.activemq.topics")}
         subtitle={t("board.activemq.destinations.count", {
-          queues: destinations.filter((entry) => entry.kind === "queue").length,
-          topics: destinations.filter((entry) => entry.kind === "topic").length,
+          queues: counts.queue,
+          topics: counts.topic,
         })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              size="sm"
-              value={kind}
-              // A cleared selection would show nothing at all, so an
-              // unset value falls back to showing everything.
-              onValueChange={(next: string) => setKind((next as KindFilter) || "all")}
-            >
-              {(["all", "queue", "topic"] as const).map((option) => (
-                <ToggleGroupItem key={option} value={option} className="text-[11px]">
-                  {t(`board.activemq.destinations.kind.${option}`)}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.activemq.destinations.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+          <>
             <RefreshButton
               refreshing={state.refreshing}
               online={state.online}
               onClick={() => void state.refresh()}
             />
-            <Button size="sm" onClick={() => setCreating(true)}>
+            <Button disabled={!state.online} onClick={() => setCreating(true)}>
               <Plus aria-hidden />
               {t("board.activemq.destinations.create")}
             </Button>
-          </div>
+          </>
         }
       />
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.activemq.destinations.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <Segmented
+          options={KIND_FILTERS.map((option) => ({
+            value: option,
+            label: `${t(`board.activemq.destinations.kind.${option}`)} ${counts[option]}`,
+          }))}
+          value={kind}
+          onChange={setKind}
+        />
+      </Toolbar>
       <DestinationDialogActiveMQ
         open={creating}
         onOpenChange={setCreating}
@@ -229,209 +237,193 @@ export function DestinationsActiveMQ() {
         from={moving ?? ""}
         onMove={(to) => move(moving ?? "", to)}
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.activemq.destinations.name")}</TableHead>
-                    <TableHead>{t("board.activemq.destinations.kindColumn")}</TableHead>
-                    <TableHead className="num">
-                      {t("board.activemq.destinations.depth")}
-                    </TableHead>
-                    <TableHead className="num">
-                      {t("board.activemq.destinations.subscribers")}
-                    </TableHead>
-                    <TableHead className="num">
-                      {t("board.activemq.destinations.inFlight")}
-                    </TableHead>
-                    <TableHead className="num">
-                      {t("board.activemq.destinations.enqueued")}
-                    </TableHead>
-                    <TableHead className="num">
-                      {t("board.activemq.destinations.dequeued")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
-                        <span className="mono3" style={MONO11}>
-                          {entry.name}
-                        </span>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.activemq.destinations.name")}</TableHead>
+                  <TableHead>{t("board.activemq.destinations.kindColumn")}</TableHead>
+                  <TableHead className="num">{t("board.activemq.destinations.depth")}</TableHead>
+                  <TableHead className="num">
+                    {t("board.activemq.destinations.subscribers")}
+                  </TableHead>
+                  <TableHead className="num">{t("board.activemq.destinations.inFlight")}</TableHead>
+                  <TableHead className="num">{t("board.activemq.destinations.enqueued")}</TableHead>
+                  <TableHead className="num">{t("board.activemq.destinations.dequeued")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate select-text">{entry.name}</span>
                         {entry.isDeadLetter && (
-                          <span className="pb pAMQ" style={{ marginLeft: "6px" }}>
-                            {t("board.activemq.destinations.deadLetterBadge")}
-                          </span>
+                          <OutlineTag>{t("board.activemq.destinations.deadLetterBadge")}</OutlineTag>
                         )}
                         {entry.paused === true && (
-                          <span className="pb pRDS" style={{ marginLeft: "6px" }}>
-                            {t("board.activemq.destinations.pausedBadge")}
-                          </span>
+                          <Status tone="warn">{t("board.activemq.destinations.pausedBadge")}</Status>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        {t(`board.activemq.destinations.kind.${entry.kind}`)}
-                      </TableCell>
-                      <TableCell className="num">
-                        <Cell value={entry.depth} />
-                      </TableCell>
-                      <TableCell className="num">
-                        <Cell value={entry.subscribers} />
-                      </TableCell>
-                      <TableCell className="num">
-                        <Cell value={entry.inFlight} />
-                      </TableCell>
-                      <TableCell className="num">
-                        <Cell value={entry.enqueued} />
-                      </TableCell>
-                      <TableCell className="num">
-                        <Cell value={entry.dequeued} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      </span>
+                    </TableCell>
+                    <TableCell>{t(`board.activemq.destinations.kind.${entry.kind}`)}</TableCell>
+                    <TableCell className="num">{count(entry.depth)}</TableCell>
+                    <TableCell className="num">{count(entry.subscribers)}</TableCell>
+                    <TableCell className="num">{count(entry.inFlight)}</TableCell>
+                    <TableCell className="num">{count(entry.enqueued)}</TableCell>
+                    <TableCell className="num">{count(entry.dequeued)}</TableCell>
+                  </TableRow>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                      {destinations.length === 0
+                        ? t("board.activemq.destinations.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "300px", flex: "none", overflow: "auto" }}>
-                <PanelHeader title={detail.name} />
-                <div style={{ padding: "0 12px 12px" }}>
-                  <SectionLabel>{t("board.activemq.destinations.section.state")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [
-                        t("board.activemq.destinations.kindColumn"),
-                        t(`board.activemq.destinations.kind.${detail.kind}`),
-                      ],
-                      [t("board.activemq.destinations.depth"), count(detail.depth)],
-                      [
-                        t("board.activemq.destinations.bytes"),
-                        detail.bytes == null ? DASH : formatBytes(detail.bytes),
-                      ],
-                      [t("board.activemq.destinations.scheduled"), count(detail.scheduled)],
-                      [t("board.activemq.destinations.expired"), count(detail.expired)],
-                    ]}
-                  />
-
-                  {/*
-                    Artemis's two levels, shown only where they exist. Classic
-                    addresses a destination directly and has no address above
-                    it, so drawing these rows would invent a concept.
-                  */}
-                  {detail.product === "artemis" && (
-                    <>
-                      <SectionLabel>
-                        {t("board.activemq.destinations.section.routing")}
-                      </SectionLabel>
-                      <KV
-                        rows={[
-                          [t("board.activemq.destinations.address"), detail.address ?? DASH],
-                          [
-                            t("board.activemq.destinations.routingTypes"),
-                            detail.routingTypes ?? DASH,
-                          ],
-                          [t("board.activemq.destinations.queueCount"), count(detail.queueCount)],
-                          [
-                            t("board.activemq.destinations.deadLetterAddress"),
-                            detail.deadLetterAddress ?? DASH,
-                          ],
-                          [
-                            t("board.activemq.destinations.expiryAddress"),
-                            detail.expiryAddress ?? DASH,
-                          ],
-                          [t("board.activemq.destinations.filter"), detail.filter ?? DASH],
-                        ]}
-                      />
-                    </>
-                  )}
-
-                  {detail.product === "classic" && (
-                    <>
-                      <SectionLabel>
-                        {t("board.activemq.destinations.section.classic")}
-                      </SectionLabel>
-                      <KV
-                        rows={[
-                          [t("board.activemq.destinations.producers"), count(detail.producers)],
-                          [t("board.activemq.destinations.dispatched"), count(detail.dispatched)],
-                          [
-                            t("board.activemq.destinations.memoryPercent"),
-                            detail.memoryPercent == null ? DASH : `${detail.memoryPercent}%`,
-                          ],
-                          [
-                            t("board.activemq.destinations.averageSize"),
-                            detail.averageMessageSize == null
-                              ? DASH
-                              : formatBytes(detail.averageMessageSize),
-                          ],
-                        ]}
-                      />
-                    </>
-                  )}
-
-                  {/*
-                    Said here rather than on the message board alone, because
-                    this is where a reader learns the destination is deeper
-                    than a browse can reach - and the number they are looking
-                    at is the one that will not fit.
-                  */}
-                  <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setMoving(detail.name)}
-                    >
-                      {t("board.activemq.destinations.moveAction")}
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => void purge(detail)}>
-                      {t("board.common.purge")}
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => void remove(detail)}>
-                      {t("common.delete")}
-                    </Button>
-                  </div>
-
-                  {browseWillBeCapped(detail) && (
-                    <p
-                      style={{
-                        marginTop: "10px",
-                        fontSize: "11px",
-                        color: "var(--c-muted)",
-                      }}
-                    >
-                      {t("board.activemq.destinations.browseCapped", {
-                        cap: detail.browseCap,
-                      })}
-                    </p>
-                  )}
-                </div>
-              </Panel>
-            )}
-          </div>
-          {product != null && (
-            <p
-              style={{
-                margin: "0 20px",
-                fontSize: "11.5px",
-                color: "var(--c-muted)",
-                flex: "none",
-              }}
-            >
-              {t(`board.activemq.destinations.note.${product}`)}
-            </p>
+          {current != null && (
+            <DestinationSheet
+              key={current.name}
+              entry={current}
+              onMove={() => setMoving(current.name)}
+              onPurge={() => void purge(current)}
+              onDelete={() => void remove(current)}
+              onClose={() => setSelected(null)}
+            />
           )}
-        </PageBody>
-      </BoardState>
+        </ListArea>
+      )}
+      {product != null && (
+        <StatusBar left={<span>{t(`board.activemq.destinations.note.${product}`)}</span>} />
+      )}
     </Page>
+  );
+}
+
+function DestinationSheet({
+  entry,
+  onMove,
+  onPurge,
+  onDelete,
+  onClose,
+}: {
+  entry: ActiveMQDestination;
+  onMove: () => void;
+  onPurge: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader
+        title={entry.name}
+        badge={<OutlineTag>{t(`board.activemq.destinations.kind.${entry.kind}`)}</OutlineTag>}
+        onClose={onClose}
+      />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.activemq.destinations.depth")} value={count(entry.depth)} />
+          <MiniStat
+            label={t("board.activemq.destinations.bytes")}
+            value={entry.bytes == null ? DASH : formatBytes(entry.bytes)}
+          />
+        </div>
+
+        {/*
+          Said here rather than on the message board alone, because this is
+          where a reader learns the destination is deeper than a browse can
+          reach - and the number they are looking at is the one that will not
+          fit.
+        */}
+        {browseWillBeCapped(entry) && (
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {t("board.activemq.destinations.browseCapped", { cap: entry.browseCap })}
+          </p>
+        )}
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.activemq.destinations.section.state")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.activemq.destinations.subscribers"), count(entry.subscribers)],
+              [t("board.activemq.destinations.inFlight"), count(entry.inFlight)],
+              [t("board.activemq.destinations.scheduled"), count(entry.scheduled)],
+              [t("board.activemq.destinations.expired"), count(entry.expired)],
+            ]}
+          />
+        </div>
+
+        {/*
+          Artemis's two levels, shown only where they exist. Classic addresses
+          a destination directly and has no address above it, so drawing these
+          rows would invent a concept.
+        */}
+        {entry.product === "artemis" && (
+          <div>
+            <SectionLabel className="mb-1.5">{t("board.activemq.destinations.section.routing")}</SectionLabel>
+            <KV
+              rows={[
+                [t("board.activemq.destinations.address"), entry.address ?? DASH],
+                [t("board.activemq.destinations.routingTypes"), entry.routingTypes ?? DASH],
+                [t("board.activemq.destinations.queueCount"), count(entry.queueCount)],
+                [
+                  t("board.activemq.destinations.deadLetterAddress"),
+                  entry.deadLetterAddress ?? DASH,
+                ],
+                [t("board.activemq.destinations.expiryAddress"), entry.expiryAddress ?? DASH],
+                [t("board.activemq.destinations.filter"), entry.filter ?? DASH],
+              ]}
+            />
+          </div>
+        )}
+
+        {entry.product === "classic" && (
+          <div>
+            <SectionLabel className="mb-1.5">{t("board.activemq.destinations.section.classic")}</SectionLabel>
+            <KV
+              rows={[
+                [t("board.activemq.destinations.producers"), count(entry.producers)],
+                [t("board.activemq.destinations.dispatched"), count(entry.dispatched)],
+                [
+                  t("board.activemq.destinations.memoryPercent"),
+                  entry.memoryPercent == null ? DASH : `${entry.memoryPercent}%`,
+                ],
+                [
+                  t("board.activemq.destinations.averageSize"),
+                  entry.averageMessageSize == null ? DASH : formatBytes(entry.averageMessageSize),
+                ],
+              ]}
+            />
+          </div>
+        )}
+      </DetailPanelBody>
+      <DetailPanelFooter>
+        <Button variant="outline" onClick={onMove}>
+          {t("board.activemq.destinations.moveAction")}
+        </Button>
+        <span className="flex-1" />
+        <Button variant="destructive" onClick={onPurge}>
+          {t("board.common.purge")}
+        </Button>
+        <Button variant="destructive" onClick={onDelete}>
+          {t("common.delete")}
+        </Button>
+      </DetailPanelFooter>
+    </DetailPanel>
   );
 }

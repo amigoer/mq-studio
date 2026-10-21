@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Page, PageBody, PageHeader, RefreshButton } from "@/design/shell";
+import {
+  ListArea,
+  ListPane,
+  Page,
+  PageHeader,
+  RefreshButton,
+  StatusBar,
+  Toolbar,
+} from "@/design/shell";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -10,13 +18,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { KV, Panel, PanelHeader, SectionLabel } from "@/components";
-import { BoardState } from "@/design/boards/BoardState";
+import {
+  DetailPanel,
+  DetailPanelBody,
+  DetailPanelHeader,
+  KV,
+  MiniStat,
+  OutlineTag,
+  SectionLabel,
+} from "@/components";
+import { BoardState, isBlocked } from "@/design/boards/BoardState";
 import { useSolaceClients } from "@/hooks/solace/useSolaceClients";
-import { applications, client as readClient } from "@/mq/solace/clients";
+import { applications, client as readClient, type SolaceClient } from "@/mq/solace/clients";
 import { formatBytes, formatCount } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
-const MONO11 = { fontSize: "11px" } as const;
 const DASH = "—";
 
 function duration(seconds: number | null): string {
@@ -65,10 +81,7 @@ export function ClientsSolace() {
     );
   }, [clients, search]);
 
-  const detail = useMemo(
-    () => shown.find((entry) => entry.name === selected) ?? shown[0] ?? null,
-    [shown, selected],
-  );
+  const current = shown.find((entry) => entry.name === selected) ?? null;
 
   return (
     <Page>
@@ -79,129 +92,144 @@ export function ClientsSolace() {
           total: clients.length,
         })}
         actions={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Input
-              style={{ width: "200px" }}
-              value={search}
-              placeholder={t("board.solace.clients.search")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <RefreshButton
-              refreshing={state.refreshing}
-              online={state.online}
-              onClick={() => void state.refresh()}
-            />
-          </div>
+          <RefreshButton
+            refreshing={state.refreshing}
+            online={state.online}
+            onClick={() => void state.refresh()}
+          />
         }
       />
-      <BoardState state={state}>
-        <PageBody>
-          <div style={{ display: "flex", gap: "12px", minHeight: 0, flex: 1 }}>
-            <Panel style={{ flex: 1, overflow: "auto" }}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("board.solace.clients.name")}</TableHead>
-                    <TableHead>{t("board.solace.clients.address")}</TableHead>
-                    <TableHead>{t("board.solace.clients.username")}</TableHead>
-                    <TableHead className="num">{t("board.solace.clients.binds")}</TableHead>
-                    <TableHead className="num">{t("board.solace.clients.uptime")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.map((entry) => (
-                    <TableRow
-                      key={entry.name}
-                      data-state={detail?.name === entry.name ? "selected" : undefined}
-                      onClick={() => setSelected(entry.name)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell>
+      <Toolbar>
+        <Input
+          className="w-60 flex-none"
+          value={search}
+          placeholder={t("board.solace.clients.search")}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </Toolbar>
+      {isBlocked(state) ? (
+        <BoardState state={state} />
+      ) : (
+        <ListArea>
+          <ListPane>
+            <Table inset>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("board.solace.clients.name")}</TableHead>
+                  <TableHead>{t("board.solace.clients.address")}</TableHead>
+                  <TableHead>{t("board.solace.clients.username")}</TableHead>
+                  <TableHead className="num">{t("board.solace.clients.binds")}</TableHead>
+                  <TableHead className="num">{t("board.solace.clients.uptime")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((entry) => (
+                  <TableRow
+                    key={entry.name}
+                    selected={selected === entry.name}
+                    onClick={() => setSelected(entry.name)}
+                  >
+                    <TableCell>
+                      <span className="flex items-center gap-1.5">
                         <span
-                          className="mono3"
-                          style={{
-                            ...MONO11,
-                            color: entry.slowSubscriber ? "var(--c-warn)" : undefined,
-                          }}
+                          className={cn(
+                            "truncate select-text",
+                            entry.slowSubscriber && "text-(--c-warn-text)",
+                          )}
                         >
                           {entry.name}
                         </span>
                         {entry.internal && (
-                          <span className="pb pSOL" style={{ marginLeft: "6px" }}>
-                            {t("board.solace.clients.internalBadge")}
-                          </span>
+                          <OutlineTag>{t("board.solace.clients.internalBadge")}</OutlineTag>
                         )}
-                      </TableCell>
-                      <TableCell className="mono3" style={MONO11}>
-                        {entry.address}
-                      </TableCell>
-                      <TableCell className="mono3" style={MONO11}>
-                        {entry.username || DASH}
-                      </TableCell>
-                      <TableCell className="num">
-                        {formatCount(entry.binds)}
-                      </TableCell>
-                      <TableCell className="num">
-                        {duration(entry.uptimeSec)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Panel>
+                      </span>
+                    </TableCell>
+                    <TableCell className="mono3 text-xs">{entry.address}</TableCell>
+                    <TableCell className="select-text">{entry.username || DASH}</TableCell>
+                    <TableCell className="num">{formatCount(entry.binds)}</TableCell>
+                    <TableCell className="num">{duration(entry.uptimeSec)}</TableCell>
+                  </TableRow>
+                ))}
+                {shown.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                      {clients.length === 0
+                        ? t("board.solace.clients.none")
+                        : t("board.common.noMatch")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ListPane>
 
-            {detail != null && (
-              <Panel style={{ width: "340px", overflow: "auto" }}>
-                <PanelHeader title={detail.name} />
-                <div style={{ padding: "10px 12px", display: "grid", gap: "8px" }}>
-                  <KV
-                    rows={[
-                      [t("board.solace.clients.msgVpn"), detail.msgVpn || DASH],
-                      [t("board.solace.clients.address"), detail.address],
-                      [t("board.solace.clients.username"), detail.username || DASH],
-                      [t("board.solace.clients.uptime"), duration(detail.uptimeSec)],
-                      [t("board.solace.clients.binds"), formatCount(detail.binds)],
-                    ]}
-                  />
-
-                  <SectionLabel>{t("board.solace.clients.section.library")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [t("board.solace.clients.platform"), detail.platform ?? DASH],
-                      [t("board.solace.clients.softwareVersion"), detail.softwareVersion ?? DASH],
-                      [t("board.solace.clients.description"), detail.description ?? DASH],
-                    ]}
-                  />
-
-                  <SectionLabel>{t("board.solace.clients.section.limits")}</SectionLabel>
-                  <KV
-                    rows={[
-                      [t("board.solace.clients.clientProfile"), detail.clientProfile ?? DASH],
-                      [t("board.solace.clients.aclProfile"), detail.aclProfile ?? DASH],
-                      [t("board.solace.clients.recv"), formatBytes(detail.recvBytes)],
-                      [t("board.solace.clients.send"), formatBytes(detail.sendBytes)],
-                    ]}
-                  />
-
-                  {detail.slowSubscriber && (
-                    <div style={{ fontSize: "11px", color: "var(--c-warn)" }}>
-                      {t("board.solace.clients.slowNote")}
-                    </div>
-                  )}
-                  {detail.tlsDowngraded && (
-                    <div style={{ fontSize: "11px", color: "var(--c-warn)" }}>
-                      {t("board.solace.clients.downgradedNote")}
-                    </div>
-                  )}
-                </div>
-              </Panel>
-            )}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--c-muted)", paddingTop: "8px" }}>
-            {t("board.solace.clients.note")}
-          </div>
-        </PageBody>
-      </BoardState>
+          {current != null && (
+            <ClientSheet
+              key={current.name}
+              entry={current}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </ListArea>
+      )}
+      {!isBlocked(state) && <StatusBar left={<span>{t("board.solace.clients.note")}</span>} />}
     </Page>
+  );
+}
+
+export function ClientSheet({ entry, onClose }: { entry: SolaceClient; onClose: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <DetailPanel width={380} onDismiss={onClose}>
+      <DetailPanelHeader title={entry.name} onClose={onClose} />
+      <DetailPanelBody>
+        <div className="grid grid-cols-2 gap-2">
+          <MiniStat label={t("board.solace.clients.binds")} value={formatCount(entry.binds)} />
+          <MiniStat label={t("board.solace.clients.uptime")} value={duration(entry.uptimeSec)} />
+        </div>
+
+        <KV
+          rows={[
+            [t("board.solace.clients.msgVpn"), entry.msgVpn || DASH],
+            [t("board.solace.clients.address"), entry.address],
+            [t("board.solace.clients.username"), entry.username || DASH],
+          ]}
+        />
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.solace.clients.section.library")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.solace.clients.platform"), entry.platform ?? DASH],
+              [t("board.solace.clients.softwareVersion"), entry.softwareVersion ?? DASH],
+              [t("board.solace.clients.description"), entry.description ?? DASH],
+            ]}
+          />
+        </div>
+
+        <div>
+          <SectionLabel className="mb-1.5">{t("board.solace.clients.section.limits")}</SectionLabel>
+          <KV
+            rows={[
+              [t("board.solace.clients.clientProfile"), entry.clientProfile ?? DASH],
+              [t("board.solace.clients.aclProfile"), entry.aclProfile ?? DASH],
+              [t("board.solace.clients.recv"), formatBytes(entry.recvBytes)],
+              [t("board.solace.clients.send"), formatBytes(entry.sendBytes)],
+            ]}
+          />
+        </div>
+
+        {entry.slowSubscriber && (
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
+            {t("board.solace.clients.slowNote")}
+          </p>
+        )}
+        {entry.tlsDowngraded && (
+          <p className="text-xs leading-relaxed text-(--c-warn-text)">
+            {t("board.solace.clients.downgradedNote")}
+          </p>
+        )}
+      </DetailPanelBody>
+    </DetailPanel>
   );
 }
