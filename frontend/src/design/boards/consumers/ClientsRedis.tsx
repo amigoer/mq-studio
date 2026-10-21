@@ -126,7 +126,7 @@ export function ClientsRedis() {
       />
       <Toolbar>
         <Input
-          className="w-[220px] flex-none"
+          className="w-72 flex-none"
           placeholder={t("board.clients.redis.search")}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -169,13 +169,13 @@ export function ClientsRedis() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("board.common.client")}</TableHead>
-                  <TableHead>addr</TableHead>
-                  <TableHead>user</TableHead>
-                  <TableHead>db</TableHead>
-                  <TableHead>cmd</TableHead>
-                  <TableHead style={RIGHT}>idle</TableHead>
-                  <TableHead style={RIGHT}>age</TableHead>
-                  <TableHead style={RIGHT}>in / out</TableHead>
+                  <TableHead>{t("board.common.address")}</TableHead>
+                  <TableHead>{t("board.common.user")}</TableHead>
+                  <TableHead style={RIGHT}>{t("board.clients.redis.col.database")}</TableHead>
+                  <TableHead>{t("board.clients.redis.col.command")}</TableHead>
+                  <TableHead style={RIGHT}>{t("board.clients.redis.col.idle")}</TableHead>
+                  <TableHead style={RIGHT}>{t("board.clients.redis.col.age")}</TableHead>
+                  <TableHead style={RIGHT}>{t("board.clients.redis.col.traffic")}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -185,22 +185,28 @@ export function ClientsRedis() {
                   const label = clientName(client) ?? peer(client);
                   return (
                     <TableRow key={clientId(client)}>
-                      <TableCell className="mono3" style={MONO11}>
-                        {clientName(client) ?? (
-                          <span style={{ color: "var(--c-muted-2)" }}>
-                            {t("board.clients.redis.unnamed")}
-                          </span>
-                        )}
-                        {self && (
-                          <Status tone="off" style={{ marginLeft: "6px", fontSize: "10px" }}>
-                            {t("board.clients.redis.thisApp")}
-                          </Status>
-                        )}
-                        {library(client) != null && (
-                          <span style={{ marginLeft: "6px", color: "var(--c-muted-2)", fontSize: "10.5px" }}>
-                            {library(client)}
-                          </span>
-                        )}
+                      <TableCell>
+                        <span className="flex items-center gap-1.5">
+                          {clientName(client) != null ? (
+                            <span className="select-text">{clientName(client)}</span>
+                          ) : (
+                            <span className="text-(--c-muted-2)">
+                              {t("board.clients.redis.unnamed")}
+                            </span>
+                          )}
+                          {self && <Status tone="off">{t("board.clients.redis.thisApp")}</Status>}
+                          {/* The library string can run to forty characters and is the one
+                              cell nobody scans by, so it gives way first - and on this app's
+                              own connections it is always this app's driver, so it is left out. */}
+                          {!self && library(client) != null && (
+                            <span
+                              className="max-w-28 truncate text-[11px] text-(--c-muted-2)"
+                              title={library(client) ?? undefined}
+                            >
+                              {library(client)}
+                            </span>
+                          )}
+                        </span>
                       </TableCell>
                       <TableCell className="mono3" style={MONO11}>
                         {peer(client)}
@@ -210,16 +216,12 @@ export function ClientsRedis() {
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="mono3" style={MONO11}>
-                        {user(client) ?? "—"}
-                      </TableCell>
-                      <TableCell className="mono3" style={MONO11}>
-                        {database(client) ?? "—"}
-                      </TableCell>
+                      <TableCell className="select-text">{user(client) ?? "—"}</TableCell>
+                      <TableCell style={RIGHT}>{database(client) ?? "—"}</TableCell>
                       <TableCell className="mono3" style={MONO11}>
                         {lastCommand(client) ?? "—"}
                         {(subscriptions(client) ?? 0) > 0 && (
-                          <Status tone="ok" style={{ marginLeft: "6px", fontSize: "10px" }}>
+                          <Status tone="ok" style={{ marginLeft: "6px" }}>
                             sub {subscriptions(client)}
                           </Status>
                         )}

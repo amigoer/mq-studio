@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import {
@@ -165,7 +165,7 @@ export function BrokersKafka() {
                     <KV
                       rows={Object.keys(config.data ?? {})
                         .sort()
-                        .map((key) => [key, (config.data ?? {})[key] ?? ""] as const)}
+                        .map((key) => [dotted(key), (config.data ?? {})[key] ?? ""] as const)}
                     />
                   </BoardState>
                 </DetailPanelBody>
@@ -376,4 +376,19 @@ export function KafkaTransactionsPanel({
       </div>
     </BoardState>
   );
+}
+
+/* A config key wraps at its dots, never inside a word: overflow-wrap alone cut
+   log.cleaner.min.compaction.lag.ms wherever the column ran out. */
+function dotted(key: string): ReactNode {
+  return key.split(".").map((part, i) => (
+    <Fragment key={i}>
+      {i > 0 && (
+        <>
+          .<wbr />
+        </>
+      )}
+      {part}
+    </Fragment>
+  ));
 }

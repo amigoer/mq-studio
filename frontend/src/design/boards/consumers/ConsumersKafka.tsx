@@ -218,21 +218,25 @@ export function ConsumersKafka() {
                         {t("board.consumers.kafka.partitionLag")}
                       </SectionLabel>
                       <Panel style={{ overflow: "hidden" }}>
-                        <Table className="text-xs">
+                        <Table size="compact">
                           <TableHeader>
                             <TableRow>
                               <TableHead>Topic</TableHead>
-                              <TableHead style={R}>P</TableHead>
-                              <TableHead>member</TableHead>
-                              <TableHead style={R}>committed</TableHead>
-                              <TableHead style={R}>end</TableHead>
-                              <TableHead style={R}>lag</TableHead>
+                              <TableHead style={R}>{t("board.common.partition")}</TableHead>
+                              <TableHead>{t("board.consumers.kafka.col.member")}</TableHead>
+                              <TableHead style={R}>{t("board.consumers.kafka.col.committed")}</TableHead>
+                              <TableHead style={R}>{t("board.consumers.kafka.col.end")}</TableHead>
+                              <TableHead style={R}>{t("board.consumers.kafka.col.lag")}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {partitions.map((row) => (
                               <TableRow key={`${row.topic}/${row.partition}`}>
-                                <TableCell className="mono3" style={MONO11}>{row.topic}</TableCell>
+                                <TableCell>
+                                  <span className="block max-w-32 truncate select-text" title={row.topic}>
+                                    {row.topic}
+                                  </span>
+                                </TableCell>
                                 <TableCell style={R}>{row.partition}</TableCell>
                                 <TableCell className="mono3" style={MONO11}>
                                   {row.member === "" ? (
@@ -240,7 +244,9 @@ export function ConsumersKafka() {
                                       {t("board.consumers.kafka.unheld")}
                                     </span>
                                   ) : (
-                                    row.member
+                                    <span className="block max-w-28 truncate" title={row.member}>
+                                      {row.member}
+                                    </span>
                                   )}
                                 </TableCell>
                                 <TableCell className="mono3" style={R}>
@@ -277,11 +283,11 @@ export function ConsumersKafka() {
                         </span>
                       ) : (
                         <Panel style={{ overflow: "hidden" }}>
-                          <Table className="text-xs">
+                          <Table size="compact">
                             <TableHeader>
                               <TableRow>
-                                <TableHead>client</TableHead>
-                                <TableHead>host</TableHead>
+                                <TableHead>{t("board.common.client")}</TableHead>
+                                <TableHead>{t("board.consumers.kafka.col.host")}</TableHead>
                                 <TableHead style={R}>{t("board.consumers.kafka.holds")}</TableHead>
                               </TableRow>
                             </TableHeader>

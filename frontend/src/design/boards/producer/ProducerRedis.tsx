@@ -109,14 +109,14 @@ export function ProducerRedis() {
                   {form.fields.map((field, index) => (
                     <div key={index} style={{ display: "flex", gap: "6px" }}>
                       <Input
-                        className="mono3"
+                        className="mono3 w-40 flex-none"
                         style={MONO11}
                         placeholder={t("board.producer.redis.fieldName")}
                         value={field.name}
                         onChange={(event) => setField(index, "name", event.target.value)}
                       />
                       <Input
-                        className="mono3 flex-1"
+                        className="mono3 min-w-0 flex-1"
                         style={MONO11}
                         placeholder={t("board.producer.redis.fieldValue")}
                         value={field.value}
