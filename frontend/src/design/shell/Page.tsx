@@ -116,7 +116,7 @@ export function PageBody({
 }) {
   return (
     <div
-      className="mqs-scroll"
+      className="mqs-scroll mqs-pagebody"
       style={{
         flex: 1,
         minHeight: 0,

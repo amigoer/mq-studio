@@ -933,6 +933,12 @@ button.btn3:focus-visible,
 .mqs-scroll { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--c-border-soft) transparent; }
 .mqs-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
 .mqs-scroll::-webkit-scrollbar-thumb { background: var(--c-border-soft); border-radius: 99px; }
+
+/* PageBody scrolls, so its blocks keep their height instead of shrinking: a
+   Card clips its overflow and would otherwise collapse to a sliver once the
+   page outgrows the window. Zero specificity, so a child that asks to flex
+   (flex-1, an inline flex) still can. */
+:where(.mqs-pagebody) > * { flex-shrink: 0; }
 .mqs-scroll::-webkit-scrollbar-track { background: transparent; }
 
 /*
