@@ -131,10 +131,10 @@ claude mcp add mq-studio -- "/Applications/MQ Studio.app/Contents/MacOS/mq-studi
 
 ## 从源码构建
 
-需要 Go（版本以 `go.mod` 为准）、Node.js 20.19+ 或 22.12+、npm 与 [Wails 3 CLI](https://v3.wails.io)。
+需要 Go（版本以 `go.mod` 为准）、Node.js 20.19+ 或 22.12+、npm 与 [Wails 3 CLI](https://wails.io)。CLI 版本必须与 `go.mod` 里的 Wails 版本一致，否则生成的 binding 和运行时不匹配。
 
 ```bash
-go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
 make install
 make dev
 ```

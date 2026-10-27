@@ -49,10 +49,11 @@ npm run labels:sync -- --apply   # 真正写入
 ## 环境准备
 
 需要 Go（版本以 `go.mod` 为准）、Node.js 20.19+ 或 22.12+、npm，以及
-[Wails 3 CLI](https://v3.wails.io)。Docker 只有跑真实环境测试时才需要。
+[Wails 3 CLI](https://wails.io)。CLI 版本必须与 `go.mod` 里的 Wails 版本一致，
+否则生成的 binding 和运行时不匹配。Docker 只有跑真实环境测试时才需要。
 
 ```bash
-go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
 make install
 make dev
 ```

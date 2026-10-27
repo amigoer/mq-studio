@@ -151,10 +151,11 @@ It is read-only unless you allow more when you start it:
 ## Build from source
 
 Requires Go (the version `go.mod` pins), Node.js 20.19+ or 22.12+, npm, and the
-[Wails 3 CLI](https://v3.wails.io).
+[Wails 3 CLI](https://wails.io). The CLI must match the Wails version in
+`go.mod`, or the generated bindings will not match the runtime.
 
 ```bash
-go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
 make install
 make dev
 ```

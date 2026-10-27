@@ -272,14 +272,13 @@ digest being rejected with the file removed.
 
 ## Why not the framework updater
 
-Wails ships `pkg/updater`, wired as `app.Updater`, with a GitHub provider and
-its own restart helper. It is not used here for one reason: `extract.go`
-handles `.zip` and `.tar.gz` only, and every artifact this project publishes is
-an installer — `.dmg`, NSIS `.exe`, `.AppImage`, `.deb`, `.rpm`. Adopting it
-would mean publishing a second set of archives aimed at the updater, and giving
-up the NSIS path on Windows for a bare binary swap that cannot elevate.
+Wails v3.0.0 ships `pkg/updater`, wired as `app.Updater`, with a GitHub
+provider and its own restart helper. It is not used here for one reason:
+`pkg/updater/extract.go` in v3.0.0 handles `.zip`, `.tar.gz` and `.tgz` only,
+and every artifact this project publishes is an installer — `.dmg`, NSIS
+`.exe`, `.AppImage`, `.deb`, `.rpm`. Adopting it would mean publishing a second
+set of archives aimed at the updater, and giving up the NSIS path on Windows
+for a bare binary swap that cannot elevate.
 
-The package is byte-identical between v3.0.0-beta.5 and v3.0.0-beta.16, so this
-is not a matter of waiting for a newer release. Worth revisiting if the release
-gains archive artifacts for other reasons, or if the extractor learns the
-installer formats.
+Worth revisiting if the release gains archive artifacts for other reasons, or
+if the extractor learns the installer formats.
