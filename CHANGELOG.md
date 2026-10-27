@@ -9,6 +9,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-27
+
+### Changed
+
+- Upgrade Wails and the frontend runtime from v3.0.0-beta.16 to the stable
+  v3.0.0 release. (#120)
+
 ## [0.4.0] - 2026-10-21
 
 The interface has been redesigned. Colours are deeper and more consistent, every
