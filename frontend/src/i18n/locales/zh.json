@@ -3276,7 +3276,7 @@
         "byMsgId": "按 MsgId",
         "storedAt": "存储时间",
         "location": "位置",
-        "body": "消息体 · JSON",
+        "body": "消息体",
         "stored": "Broker 存储",
         "byTag": "按 Tag",
         "pickTopic": "选择 Topic",

@@ -363,7 +363,7 @@ export function MessagesRocketMQ({ nav }: BoardProps = {}) {
   );
 }
 
-function MessageSheet({
+export function MessageSheet({
   message,
   topic,
   onClose,
@@ -496,8 +496,8 @@ function MessageSheet({
             }
           >
             {t("board.messages.rocketmq.body")}
-            <span className="ml-1.5 font-normal tracking-normal normal-case text-(--c-muted)">
-              {t(`board.messages.rocketmq.bodyKind.${body.kind}`)}
+            <span className="ml-1 font-normal tracking-normal normal-case text-(--c-muted)">
+              · {t(`board.messages.rocketmq.bodyKind.${body.kind}`)}
             </span>
           </SectionLabel>
           {body.truncated && (
