@@ -121,7 +121,7 @@ export function DlqIbmMq() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.ibmmq.dlq.queue")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.ibmmq.dlq.queue")}</TableHead>
                   <TableHead className="num">{t("board.ibmmq.dlq.depth")}</TableHead>
                   <TableHead className="num">{t("board.ibmmq.dlq.consumers")}</TableHead>
                   <TableHead className="num">{t("board.ibmmq.dlq.sources")}</TableHead>
@@ -134,7 +134,7 @@ export function DlqIbmMq() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="mqs-col-fill select-text">{entry.name}</TableCell>
                     <TableCell className={cn("num", entry.depth > 0 && "text-(--c-warn-text)")}>
                       {count(entry.depth)}
                     </TableCell>

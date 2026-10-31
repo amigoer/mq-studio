@@ -97,7 +97,7 @@ export function BrokerActiveMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.activemq.cluster.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.activemq.cluster.name")}</TableHead>
                   <TableHead>{t("board.activemq.cluster.version")}</TableHead>
                   <TableHead>{t("board.activemq.cluster.uptime")}</TableHead>
                   <TableHead className="num">{t("board.activemq.cluster.messages")}</TableHead>
@@ -112,8 +112,8 @@ export function BrokerActiveMQ() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {entry.bridge && (
                           <OutlineTag>{t("board.activemq.cluster.bridgeBadge")}</OutlineTag>

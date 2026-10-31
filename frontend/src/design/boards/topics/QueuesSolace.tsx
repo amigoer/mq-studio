@@ -172,7 +172,7 @@ export function QueuesSolace() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.solace.queues.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.solace.queues.name")}</TableHead>
                   <TableHead>{t("board.solace.queues.accessType")}</TableHead>
                   <TableHead className="num">{t("board.solace.queues.spooled")}</TableHead>
                   <TableHead className="num">{t("board.solace.queues.bound")}</TableHead>
@@ -186,8 +186,8 @@ export function QueuesSolace() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {hasDeadMsgQueue(entry) && (
                           <OutlineTag>{t("board.solace.queues.dmqBadge")}</OutlineTag>

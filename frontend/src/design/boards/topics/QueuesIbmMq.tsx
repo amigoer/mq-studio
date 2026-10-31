@@ -171,7 +171,7 @@ export function QueuesIbmMq() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.ibmmq.queues.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.ibmmq.queues.name")}</TableHead>
                   <TableHead>{t("board.ibmmq.queues.type")}</TableHead>
                   <TableHead className="num">{t("board.ibmmq.queues.depth")}</TableHead>
                   <TableHead className="num">{t("board.ibmmq.queues.openInput")}</TableHead>
@@ -185,8 +185,8 @@ export function QueuesIbmMq() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {entry.deadLetterQueue && (
                           <OutlineTag>{t("board.ibmmq.queues.deadLetterBadge")}</OutlineTag>

@@ -3278,7 +3278,7 @@
         "byMsgId": "By message ID",
         "storedAt": "Stored at",
         "location": "Location",
-        "body": "Body · JSON",
+        "body": "Body",
         "stored": "Stored by broker",
         "byTag": "By tag",
         "pickTopic": "Pick a topic",

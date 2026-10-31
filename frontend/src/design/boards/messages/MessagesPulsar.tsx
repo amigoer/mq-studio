@@ -217,7 +217,7 @@ export function MessagesPulsar() {
                     <TableHead>{t("board.messages.pulsar.key")}</TableHead>
                     <TableHead>{t("board.messages.pulsar.publishedAt")}</TableHead>
                     <TableHead>{t("board.messages.pulsar.redelivery")}</TableHead>
-                    <TableHead>{t("board.messages.pulsar.body")}</TableHead>
+                    <TableHead className="mqs-col-fill">{t("board.messages.pulsar.body")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -240,7 +240,7 @@ export function MessagesPulsar() {
                           "—"
                         )}
                       </TableCell>
-                      <TableCell className="mono3 max-w-80 truncate">{message.body}</TableCell>
+                      <TableCell className="mqs-col-fill mono3 max-w-80 truncate">{message.body}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

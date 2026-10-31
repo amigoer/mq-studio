@@ -184,7 +184,7 @@ export function RulesAzureServiceBus() {
                   <TableHead>{t("board.azure-servicebus.rules.topic")}</TableHead>
                   <TableHead>{t("board.azure-servicebus.rules.subscription")}</TableHead>
                   <TableHead>{t("board.azure-servicebus.rules.name")}</TableHead>
-                  <TableHead>{t("board.azure-servicebus.rules.filter")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.azure-servicebus.rules.filter")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -206,7 +206,7 @@ export function RulesAzureServiceBus() {
                     </TableCell>
                     <TableCell
                       className={cn(
-                        "mono3 text-[11px] select-text",
+                        "mqs-col-fill mono3 text-[11px] select-text",
                         matchesNothing(row) && "text-(--c-warn-text)",
                       )}
                     >

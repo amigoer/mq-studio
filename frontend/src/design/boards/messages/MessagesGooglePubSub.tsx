@@ -161,7 +161,7 @@ export function MessagesGooglePubSub() {
                   <TableHead style={RIGHT}>
                     {t("board.google-pubsub.messages.deliveryAttempt")}
                   </TableHead>
-                  <TableHead>{t("board.google-pubsub.messages.body")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.google-pubsub.messages.body")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -182,7 +182,7 @@ export function MessagesGooglePubSub() {
                         ? DASH
                         : String(deliveryAttempt(message))}
                     </TableCell>
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-fill mono3" style={MONO11}>
                       {preview(message)}
                     </TableCell>
                   </TableRow>

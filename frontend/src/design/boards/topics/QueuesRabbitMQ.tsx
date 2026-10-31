@@ -301,7 +301,7 @@ export function QueuesRabbitMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.common.queue")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.common.queue")}</TableHead>
                   <TableHead>{t("board.common.type")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>Ready</TableHead>
                   <TableHead style={{ textAlign: "right" }}>Unacked</TableHead>
@@ -325,7 +325,7 @@ export function QueuesRabbitMQ() {
                       selected={selected === key}
                       onClick={() => setSelected(key)}
                     >
-                      <TableCell>
+                      <TableCell className="mqs-col-fill">
                         <b style={{ fontWeight: 500 }}>{queue.ref.name}</b>
                         {vhosts.length > 1 && (
                           <span

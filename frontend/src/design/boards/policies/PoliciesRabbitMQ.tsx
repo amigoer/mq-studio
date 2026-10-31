@@ -218,7 +218,7 @@ export function PoliciesRabbitMQ() {
               <Table inset>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("board.policies.rabbitmq.name")}</TableHead>
+                    <TableHead className="mqs-col-fill">{t("board.policies.rabbitmq.name")}</TableHead>
                     <TableHead>vhost</TableHead>
                     <TableHead>{t("board.policies.rabbitmq.pattern")}</TableHead>
                     <TableHead>{t("board.policies.rabbitmq.applyTo")}</TableHead>
@@ -235,7 +235,7 @@ export function PoliciesRabbitMQ() {
                       selected={selected === policyKey(policy)}
                       onClick={() => setSelected(policyKey(policy))}
                     >
-                      <TableCell>
+                      <TableCell className="mqs-col-fill">
                         <b style={{ fontWeight: 500 }}>{policy.name}</b>
                       </TableCell>
                       <TableCell className="mono3" style={MONO11}>

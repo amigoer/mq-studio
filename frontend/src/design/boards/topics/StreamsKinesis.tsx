@@ -179,11 +179,11 @@ export function StreamsKinesis() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.kinesis.streams.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.kinesis.streams.name")}</TableHead>
                   <TableHead>{t("board.kinesis.streams.status")}</TableHead>
                   <TableHead className="num">{t("board.kinesis.streams.openShards")}</TableHead>
                   <TableHead className="num">{t("board.kinesis.streams.consumers")}</TableHead>
-                  <TableHead className="num">{t("board.kinesis.streams.retention")}</TableHead>
+                  <TableHead className="mqs-col-secondary num">{t("board.kinesis.streams.retention")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -193,8 +193,8 @@ export function StreamsKinesis() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {entry.mode === "ON_DEMAND" && (
                           <OutlineTag>{t("board.kinesis.streams.onDemandBadge")}</OutlineTag>
@@ -206,7 +206,7 @@ export function StreamsKinesis() {
                     </TableCell>
                     <TableCell className="num">{count(entry.openShards)}</TableCell>
                     <TableCell className="num">{count(entry.consumers)}</TableCell>
-                    <TableCell className="num">{retention(entry.retentionHours) ?? DASH}</TableCell>
+                    <TableCell className="mqs-col-secondary num">{retention(entry.retentionHours) ?? DASH}</TableCell>
                   </TableRow>
                 ))}
                 {shown.length === 0 && (

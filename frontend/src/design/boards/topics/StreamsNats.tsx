@@ -271,13 +271,13 @@ export function StreamsNats() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.topics.nats.stream")}</TableHead>
-                  <TableHead>{t("board.topics.nats.subjects")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.topics.nats.stream")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.topics.nats.subjects")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.topics.nats.messages")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.topics.nats.size")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.topics.nats.consumers")}</TableHead>
-                  <TableHead>{t("board.topics.nats.retention")}</TableHead>
-                  <TableHead>{t("board.topics.nats.replicas")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.topics.nats.retention")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.topics.nats.replicas")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -289,12 +289,12 @@ export function StreamsNats() {
                       selected={selected === name}
                       onClick={() => setSelected(name)}
                     >
-                      <TableCell>
+                      <TableCell className="mqs-col-fill">
                         <b className="mono3" style={{ fontWeight: 500, ...NAME }}>
                           {name}
                         </b>
                       </TableCell>
-                      <TableCell className="mono3" style={MONO11}>
+                      <TableCell className="mqs-col-secondary mono3" style={MONO11}>
                         <SubjectList stream={stream} />
                       </TableCell>
                       <TableCell style={RIGHT}>
@@ -306,10 +306,10 @@ export function StreamsNats() {
                       <TableCell style={RIGHT}>
                         {consumerCount(stream)}
                       </TableCell>
-                      <TableCell style={MONO11}>
+                      <TableCell className="mqs-col-secondary" style={MONO11}>
                         <RetentionBadge stream={stream} />
                       </TableCell>
-                      <TableCell className="mono3" style={MONO11}>
+                      <TableCell className="mqs-col-secondary mono3" style={MONO11}>
                         <ReplicaSummary stream={stream} />
                       </TableCell>
                     </TableRow>

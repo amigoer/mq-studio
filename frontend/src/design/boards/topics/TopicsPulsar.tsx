@@ -163,7 +163,7 @@ export function TopicsPulsar() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("board.topics.pulsar.name")}</TableHead>
+                    <TableHead className="mqs-col-fill">{t("board.topics.pulsar.name")}</TableHead>
                     <TableHead>{t("board.topics.pulsar.storage")}</TableHead>
                     <TableHead style={R}>{t("board.topics.pulsar.partitions")}</TableHead>
                     <TableHead style={R}>{t("board.topics.pulsar.backlog")}</TableHead>
@@ -178,7 +178,7 @@ export function TopicsPulsar() {
                       data-state={topic.ref.name === selected ? "selected" : undefined}
                       onClick={() => setSelected(topic.ref.name)}
                     >
-                      <TableCell className="mono3">{topic.ref.name}</TableCell>
+                      <TableCell className="mqs-col-fill mono3">{topic.ref.name}</TableCell>
                       <TableCell>
                         {isPersistent(topic) ? (
                           <OutlineTag>persistent</OutlineTag>

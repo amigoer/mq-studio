@@ -201,7 +201,7 @@ export function EntitiesAzureServiceBus() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.azure-servicebus.entities.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.azure-servicebus.entities.name")}</TableHead>
                   <TableHead>{t("board.azure-servicebus.entities.kind")}</TableHead>
                   <TableHead className="num">
                     {t("board.azure-servicebus.entities.depth")}
@@ -209,7 +209,7 @@ export function EntitiesAzureServiceBus() {
                   <TableHead className="num">
                     {t("board.azure-servicebus.entities.deadLetters")}
                   </TableHead>
-                  <TableHead className="num">
+                  <TableHead className="mqs-col-secondary num">
                     {t("board.azure-servicebus.entities.subscribers")}
                   </TableHead>
                   <TableHead>{t("board.azure-servicebus.entities.status")}</TableHead>
@@ -222,8 +222,8 @@ export function EntitiesAzureServiceBus() {
                     selected={selected === row.name}
                     onClick={() => setSelected(row.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{row.name}</span>
                         {/* Said on the row rather than only in the panel: it
                             is the one state that looks healthy everywhere
@@ -243,7 +243,7 @@ export function EntitiesAzureServiceBus() {
                     </TableCell>
                     <TableCell className="num">{count(row.depth)}</TableCell>
                     <TableCell className="num">{count(row.deadLetterCount)}</TableCell>
-                    <TableCell className="num">{count(row.subscribers)}</TableCell>
+                    <TableCell className="mqs-col-secondary num">{count(row.subscribers)}</TableCell>
                     <TableCell>
                       {isDisabled(row) ? (
                         <Status tone="warn">{row.status}</Status>

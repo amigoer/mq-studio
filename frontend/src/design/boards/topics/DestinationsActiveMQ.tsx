@@ -245,7 +245,7 @@ export function DestinationsActiveMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.activemq.destinations.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.activemq.destinations.name")}</TableHead>
                   <TableHead>{t("board.activemq.destinations.kindColumn")}</TableHead>
                   <TableHead className="num">{t("board.activemq.destinations.depth")}</TableHead>
                   <TableHead className="num">
@@ -263,8 +263,8 @@ export function DestinationsActiveMQ() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {entry.isDeadLetter && (
                           <OutlineTag>{t("board.activemq.destinations.deadLetterBadge")}</OutlineTag>

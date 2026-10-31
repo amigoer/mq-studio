@@ -216,12 +216,12 @@ export function TopicsKafka() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Topic</TableHead>
+                  <TableHead className="mqs-col-fill">Topic</TableHead>
                   <TableHead style={R}>{t("board.common.partition")}</TableHead>
                   <TableHead style={R}>{t("board.topics.kafka.replicas")}</TableHead>
                   <TableHead style={R}>{t("board.topics.kafka.minIsr")}</TableHead>
                   <TableHead style={R}>{t("board.topics.kafka.records")}</TableHead>
-                  <TableHead>{t("board.topics.kafka.cleanup")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.topics.kafka.cleanup")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -231,7 +231,7 @@ export function TopicsKafka() {
                     selected={selected === topic.ref.name}
                     onClick={() => setSelected(topic.ref.name)}
                   >
-                    <TableCell>
+                    <TableCell className="mqs-col-fill">
                       <b style={{ fontWeight: 500 }}>{topic.ref.name}</b>{" "}
                       {isInternal(topic) && (
                         <Status tone="off" style={{ fontSize: "10px" }}>
@@ -254,7 +254,7 @@ export function TopicsKafka() {
                     <TableCell style={R}>
                       {reported(readableRecords(topic))}
                     </TableCell>
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-secondary mono3" style={MONO11}>
                       {cleanupPolicy(topic) === "" ? "—" : cleanupPolicy(topic)}
                     </TableCell>
                   </TableRow>

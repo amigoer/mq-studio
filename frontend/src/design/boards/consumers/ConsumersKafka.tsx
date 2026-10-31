@@ -148,12 +148,12 @@ export function ConsumersKafka() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Group</TableHead>
+                  <TableHead className="mqs-col-fill">Group</TableHead>
                   <TableHead>{t("board.common.status")}</TableHead>
                   <TableHead style={R}>{t("board.common.members")}</TableHead>
                   <TableHead style={R}>Topic</TableHead>
                   <TableHead style={R}>{t("board.consumers.kafka.totalLag")}</TableHead>
-                  <TableHead>{t("board.consumers.kafka.strategy")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.consumers.kafka.strategy")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -163,7 +163,7 @@ export function ConsumersKafka() {
                     selected={selected === group.ref.name}
                     onClick={() => setSelected(group.ref.name)}
                   >
-                    <TableCell>
+                    <TableCell className="mqs-col-fill">
                       <b style={{ fontWeight: 500 }}>{group.ref.name}</b>
                     </TableCell>
                     <TableCell>
@@ -176,7 +176,7 @@ export function ConsumersKafka() {
                     >
                       {reported(totalLag(group))}
                     </TableCell>
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-secondary mono3" style={MONO11}>
                       {assignor(group) === "" ? "—" : assignor(group)}
                     </TableCell>
                   </TableRow>

@@ -115,7 +115,7 @@ export function SubscriptionsIbmMq() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.ibmmq.subscriptions.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.ibmmq.subscriptions.name")}</TableHead>
                   <TableHead>{t("board.ibmmq.subscriptions.topicString")}</TableHead>
                   <TableHead>{t("board.ibmmq.subscriptions.destination")}</TableHead>
                   <TableHead className="num">{t("board.ibmmq.subscriptions.waiting")}</TableHead>
@@ -129,7 +129,7 @@ export function SubscriptionsIbmMq() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="mqs-col-fill select-text">{entry.name}</TableCell>
                     <TableCell className="select-text">{entry.topicString || DASH}</TableCell>
                     <TableCell className="select-text">{entry.destination || DASH}</TableCell>
                     <TableCell className={cn("num", unread(entry) && "text-(--c-warn-text)")}>

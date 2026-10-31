@@ -157,10 +157,10 @@ export function ConsumersKinesis() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.kinesis.consumers.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.kinesis.consumers.name")}</TableHead>
                   <TableHead>{t("board.kinesis.consumers.stream")}</TableHead>
                   <TableHead>{t("board.kinesis.consumers.status")}</TableHead>
-                  <TableHead>{t("board.kinesis.consumers.registeredAt")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.kinesis.consumers.registeredAt")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -170,12 +170,12 @@ export function ConsumersKinesis() {
                     selected={selected === keyOf(entry)}
                     onClick={() => setSelected(keyOf(entry))}
                   >
-                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="mqs-col-fill select-text">{entry.name}</TableCell>
                     <TableCell className="select-text">{entry.stream}</TableCell>
                     <TableCell>
                       <ConsumerStatus entry={entry} />
                     </TableCell>
-                    <TableCell>{formatMessageTime(entry.registeredAtMs)}</TableCell>
+                    <TableCell className="mqs-col-secondary">{formatMessageTime(entry.registeredAtMs)}</TableCell>
                   </TableRow>
                 ))}
                 {shown.length === 0 && (

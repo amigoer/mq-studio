@@ -180,7 +180,7 @@ export function MessagesKinesis() {
                   <TableHead>{t("board.kinesis.messages.shard")}</TableHead>
                   <TableHead>{t("board.kinesis.messages.arrived")}</TableHead>
                   <TableHead>{t("board.kinesis.messages.partitionKey")}</TableHead>
-                  <TableHead>{t("board.kinesis.messages.body")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.kinesis.messages.body")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -199,7 +199,7 @@ export function MessagesKinesis() {
                     <TableCell className="mono3" style={MONO11}>
                       {partitionKeyOf(message) ?? DASH}
                     </TableCell>
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-fill mono3" style={MONO11}>
                       {preview(message)}
                     </TableCell>
                   </TableRow>

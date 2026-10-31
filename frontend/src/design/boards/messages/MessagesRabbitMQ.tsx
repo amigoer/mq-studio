@@ -180,7 +180,7 @@ export function MessagesRabbitMQ() {
                   <TableHead style={{ width: "48px" }}>#</TableHead>
                   <TableHead>{t("board.messages.rabbitmq.routingKey")}</TableHead>
                   <TableHead>{t("board.common.exchange")}</TableHead>
-                  <TableHead>{t("board.messages.rabbitmq.payload")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.messages.rabbitmq.payload")}</TableHead>
                   <TableHead>{t("board.common.features")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -200,7 +200,7 @@ export function MessagesRabbitMQ() {
                     <TableCell className="mono3" style={MONO11}>
                       {exchange(message) || t("board.messages.rabbitmq.defaultExchange")}
                     </TableCell>
-                    <TableCell style={{ color: "var(--c-mono-dim)" }}>
+                    <TableCell className="mqs-col-fill" style={{ color: "var(--c-mono-dim)" }}>
                       {preview(message.body)}
                     </TableCell>
                     <TableCell>

@@ -237,12 +237,12 @@ export function ConsumersNats() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.consumers.nats.consumer")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.consumers.nats.consumer")}</TableHead>
                   <TableHead>{t("board.consumers.nats.stream")}</TableHead>
-                  <TableHead>{t("board.consumers.nats.kind")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.consumers.nats.kind")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.consumers.nats.backlog")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.consumers.nats.unacked")}</TableHead>
-                  <TableHead style={RIGHT}>{t("board.consumers.nats.redelivered")}</TableHead>
+                  <TableHead className="mqs-col-secondary" style={RIGHT}>{t("board.consumers.nats.redelivered")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.consumers.nats.attached")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -253,7 +253,7 @@ export function ConsumersNats() {
                     selected={selected === key(consumer)}
                     onClick={() => setSelected(key(consumer))}
                   >
-                    <TableCell>
+                    <TableCell className="mqs-col-fill">
                       <b className="mono3" style={{ fontWeight: 500, ...NAME }}>
                         {consumerName(consumer)}
                       </b>
@@ -266,7 +266,7 @@ export function ConsumersNats() {
                     <TableCell className="mono3" style={MONO11}>
                       {streamOf(consumer)}
                     </TableCell>
-                    <TableCell style={MONO11}>
+                    <TableCell className="mqs-col-secondary" style={MONO11}>
                       <Status
                         tone={consumer.status === "warning" ? "warn" : "off"}
                         style={{ fontSize: "10px" }}
@@ -282,7 +282,7 @@ export function ConsumersNats() {
                     <TableCell style={RIGHT}>
                       <Metric value={ackPending(consumer)} />
                     </TableCell>
-                    <TableCell style={RIGHT}>
+                    <TableCell className="mqs-col-secondary" style={RIGHT}>
                       <Metric value={redelivered(consumer)} />
                     </TableCell>
                     <TableCell style={RIGHT}>

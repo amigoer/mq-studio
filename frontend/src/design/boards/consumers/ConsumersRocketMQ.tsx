@@ -285,10 +285,10 @@ export function ConsumersRocketMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.consumers.rocketmq.groupName")}</TableHead>
-                  <TableHead style={R}>{t("board.consumers.rocketmq.subTopic")}</TableHead>
-                  <TableHead>{t("board.common.mode")}</TableHead>
-                  <TableHead style={R}>{t("board.common.client")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.consumers.rocketmq.groupName")}</TableHead>
+                  <TableHead className="mqs-col-secondary" style={R}>{t("board.consumers.rocketmq.subTopic")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.common.mode")}</TableHead>
+                  <TableHead className="mqs-col-secondary" style={R}>{t("board.common.client")}</TableHead>
                   <TableHead style={R}>{t("board.common.backlog")}</TableHead>
                   <TableHead style={R}>{t("board.consumers.rocketmq.dlq")}</TableHead>
                   <TableHead>{t("board.common.status")}</TableHead>
@@ -303,14 +303,14 @@ export function ConsumersRocketMQ() {
                   const dim = offline ? { color: "var(--c-muted)" } : undefined;
                   return (
                     <TableRow key={name} selected={selected === name} onClick={() => setSelected(name)}>
-                      <TableCell style={dim}>
+                      <TableCell className="mqs-col-fill" style={dim}>
                         {offline ? name : <b style={{ fontWeight: 500 }}>{name}</b>}
                       </TableCell>
-                      <TableCell style={{ ...R, ...dim }}>
+                      <TableCell className="mqs-col-secondary" style={{ ...R, ...dim }}>
                         {metric(group.destinations)}
                       </TableCell>
-                      <TableCell style={dim}>{modeText(group, t)}</TableCell>
-                      <TableCell style={{ ...R, ...dim }}>
+                      <TableCell className="mqs-col-secondary" style={dim}>{modeText(group, t)}</TableCell>
+                      <TableCell className="mqs-col-secondary" style={{ ...R, ...dim }}>
                         {metric(group.members)}
                       </TableCell>
                       <TableCell

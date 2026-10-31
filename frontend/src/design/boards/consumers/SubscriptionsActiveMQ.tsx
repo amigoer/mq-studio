@@ -183,7 +183,7 @@ export function SubscriptionsActiveMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.activemq.subscriptions.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.activemq.subscriptions.name")}</TableHead>
                   <TableHead>{t("board.activemq.subscriptions.topic")}</TableHead>
                   <TableHead>{t("board.activemq.subscriptions.state")}</TableHead>
                   <TableHead className="num">{t("board.activemq.subscriptions.backlog")}</TableHead>
@@ -200,7 +200,7 @@ export function SubscriptionsActiveMQ() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell className="select-text">
+                    <TableCell className="mqs-col-fill select-text">
                       {entry.subscriptionName ?? entry.name}
                     </TableCell>
                     <TableCell className="select-text">{entry.topic}</TableCell>

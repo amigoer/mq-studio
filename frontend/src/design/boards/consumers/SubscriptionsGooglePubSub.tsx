@@ -254,13 +254,13 @@ export function SubscriptionsGooglePubSub() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.google-pubsub.subscriptions.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.google-pubsub.subscriptions.name")}</TableHead>
                   <TableHead>{t("board.google-pubsub.subscriptions.topic")}</TableHead>
                   <TableHead>{t("board.google-pubsub.subscriptions.delivery")}</TableHead>
-                  <TableHead className="num">
+                  <TableHead className="mqs-col-secondary num">
                     {t("board.google-pubsub.subscriptions.ackDeadline")}
                   </TableHead>
-                  <TableHead>{t("board.google-pubsub.subscriptions.deadLetterTopic")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.google-pubsub.subscriptions.deadLetterTopic")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -270,8 +270,8 @@ export function SubscriptionsGooglePubSub() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {/* Two ways to be finished and neither is an error
                             state, so nothing else on the row would say it. */}
@@ -290,8 +290,8 @@ export function SubscriptionsGooglePubSub() {
                     <TableCell>
                       {t(`board.google-pubsub.subscriptions.deliveryKind.${entry.delivery}`)}
                     </TableCell>
-                    <TableCell className="num">{duration(entry.ackDeadlineSec)}</TableCell>
-                    <TableCell className="select-text">{entry.deadLetterTopic ?? DASH}</TableCell>
+                    <TableCell className="mqs-col-secondary num">{duration(entry.ackDeadlineSec)}</TableCell>
+                    <TableCell className="mqs-col-secondary select-text">{entry.deadLetterTopic ?? DASH}</TableCell>
                   </TableRow>
                 ))}
                 {shown.length === 0 && (

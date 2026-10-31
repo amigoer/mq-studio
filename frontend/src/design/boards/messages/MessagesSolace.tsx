@@ -154,7 +154,7 @@ export function MessagesSolace() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.solace.messages.messageId")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.solace.messages.messageId")}</TableHead>
                   <TableHead>{t("board.solace.messages.spooled")}</TableHead>
                   <TableHead className="num">{t("board.solace.messages.size")}</TableHead>
                   <TableHead className="num">{t("board.solace.messages.redelivery")}</TableHead>
@@ -168,7 +168,7 @@ export function MessagesSolace() {
                     selected={selected === messageIdOf(message)}
                     onClick={() => setSelected(messageIdOf(message))}
                   >
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-fill mono3" style={MONO11}>
                       {messageIdOf(message)}
                     </TableCell>
                     <TableCell className="mono3" style={MONO11}>

@@ -257,9 +257,11 @@ export function TopicsRocketMQ({ nav }: BoardProps = {}) {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Topic</TableHead>
-                  <TableHead>{t("board.topics.rocketmq.type")}</TableHead>
-                  <TableHead style={{ textAlign: "right" }}>{t("board.topics.rocketmq.queueRW")}</TableHead>
+                  <TableHead className="mqs-col-fill">Topic</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.topics.rocketmq.type")}</TableHead>
+                  <TableHead className="mqs-col-secondary" style={{ textAlign: "right" }}>
+                    {t("board.topics.rocketmq.queueRW")}
+                  </TableHead>
                   <TableHead>{t("board.topics.rocketmq.perm")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>{t("board.common.produceTps")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>{t("board.common.consumerGroup")}</TableHead>
@@ -273,13 +275,13 @@ export function TopicsRocketMQ({ nav }: BoardProps = {}) {
                   const dim = derived ? { color: "var(--c-muted)" } : undefined;
                   return (
                     <TableRow key={name} selected={selected === name} onClick={() => setSelected(name)}>
-                      <TableCell className="select-text" style={dim}>
+                      <TableCell className="mqs-col-fill select-text" style={dim}>
                         {derived ? name : <b style={{ fontWeight: 500 }}>{name}</b>}
                       </TableCell>
-                      <TableCell style={dim}>
+                      <TableCell className="mqs-col-secondary" style={dim}>
                         {t(`board.topics.rocketmq.kindOf.${rowKind}`)}
                       </TableCell>
-                      <TableCell style={{ textAlign: "right", ...dim }}>
+                      <TableCell className="mqs-col-secondary" style={{ textAlign: "right", ...dim }}>
                         {metric(readQueue(topic))} / {metric(writeQueue(topic))}
                       </TableCell>
                       <TableCell>

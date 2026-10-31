@@ -180,13 +180,13 @@ export function ClientsNats() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.clients.nats.client")}</TableHead>
-                  <TableHead>{t("board.clients.nats.server")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.clients.nats.client")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.clients.nats.server")}</TableHead>
                   <TableHead>{t("board.clients.nats.subjects")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.clients.nats.in")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.clients.nats.out")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.clients.nats.pending")}</TableHead>
-                  <TableHead>{t("board.clients.nats.transport")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.clients.nats.transport")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -196,7 +196,7 @@ export function ClientsNats() {
                     selected={selected === connectionKey(connection)}
                     onClick={() => setSelected(connectionKey(connection))}
                   >
-                    <TableCell>
+                    <TableCell className="mqs-col-fill">
                       <b className="mono3" style={{ fontWeight: 500, fontSize: "11.5px" }}>
                         {clientName(connection) ?? peer(connection)}
                       </b>
@@ -209,7 +209,7 @@ export function ClientsNats() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-secondary mono3" style={MONO11}>
                       {serverOf(connection)}
                     </TableCell>
                     <TableCell className="mono3" style={MONO11}>
@@ -224,7 +224,7 @@ export function ClientsNats() {
                     <TableCell style={RIGHT}>
                       <Pending connection={connection} />
                     </TableCell>
-                    <TableCell style={MONO11}>
+                    <TableCell className="mqs-col-secondary" style={MONO11}>
                       <Status
                         tone={isEncrypted(connection) ? "ok" : "off"}
                         style={{ fontSize: "10px" }}
