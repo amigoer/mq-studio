@@ -361,7 +361,10 @@ export function OverviewRocketMQ({ nav }: BoardProps = {}) {
                         <TableCell className="max-w-44 truncate font-medium select-text">
                           {groupName(group)}
                         </TableCell>
-                        <TableCell className="max-w-40 truncate text-muted-foreground select-text">
+                        {/* Takes what the other columns leave, so a long topic list
+                            ends in an ellipsis instead of pushing the status out of
+                            the card. */}
+                        <TableCell className="w-full max-w-0 truncate text-muted-foreground select-text">
                           {reads || "—"}
                         </TableCell>
                         <TableCell
