@@ -130,10 +130,10 @@ export function ClientsMqtt() {
               <Table inset>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Client ID</TableHead>
-                    <TableHead>{t("board.consumers.mqtt.user")}</TableHead>
+                    <TableHead className="mqs-col-fill">Client ID</TableHead>
+                    <TableHead className="mqs-col-secondary">{t("board.consumers.mqtt.user")}</TableHead>
                     <TableHead>{t("board.consumers.mqtt.address")}</TableHead>
-                    <TableHead>{t("board.common.protocol")}</TableHead>
+                    <TableHead className="mqs-col-secondary">{t("board.common.protocol")}</TableHead>
                     <TableHead className="num">{t("board.consumers.mqtt.subsCount")}</TableHead>
                     <TableHead>{t("board.consumers.mqtt.state")}</TableHead>
                   </TableRow>
@@ -147,12 +147,12 @@ export function ClientsMqtt() {
                         selected={selected === client.name}
                         onClick={() => setSelected(client.name)}
                       >
-                        <TableCell className="select-text">{client.name}</TableCell>
-                        <TableCell>{client.user === "" ? "—" : client.user}</TableCell>
+                        <TableCell className="mqs-col-fill select-text">{client.name}</TableCell>
+                        <TableCell className="mqs-col-secondary">{client.user === "" ? "—" : client.user}</TableCell>
                         <TableCell className="mono3 text-xs">
                           {client.peerHost}:{client.peerPort}
                         </TableCell>
-                        <TableCell>{client.protocol}</TableCell>
+                        <TableCell className="mqs-col-secondary">{client.protocol}</TableCell>
                         <TableCell className="num">{reported(session.subscriptions)}</TableCell>
                         <TableCell>
                           <SessionState session={session} />

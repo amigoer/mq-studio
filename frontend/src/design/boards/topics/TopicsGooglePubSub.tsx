@@ -183,12 +183,12 @@ export function TopicsGooglePubSub() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.google-pubsub.topics.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.google-pubsub.topics.name")}</TableHead>
                   <TableHead className="num">
                     {t("board.google-pubsub.topics.subscribers")}
                   </TableHead>
-                  <TableHead className="num">{t("board.google-pubsub.topics.retention")}</TableHead>
-                  <TableHead>{t("board.google-pubsub.topics.subscriptionNames")}</TableHead>
+                  <TableHead className="mqs-col-secondary num">{t("board.google-pubsub.topics.retention")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.google-pubsub.topics.subscriptionNames")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -198,8 +198,8 @@ export function TopicsGooglePubSub() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {/* Said on the row rather than only in the panel: it
                             is the one state that looks healthy everywhere
@@ -213,8 +213,8 @@ export function TopicsGooglePubSub() {
                       </span>
                     </TableCell>
                     <TableCell className="num">{formatCount(entry.subscribers)}</TableCell>
-                    <TableCell className="num">{duration(entry.retentionSec)}</TableCell>
-                    <TableCell className="select-text">
+                    <TableCell className="mqs-col-secondary num">{duration(entry.retentionSec)}</TableCell>
+                    <TableCell className="mqs-col-secondary select-text">
                       {entry.subscriptionNames.join(", ") || DASH}
                     </TableCell>
                   </TableRow>

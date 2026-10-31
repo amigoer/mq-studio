@@ -137,7 +137,8 @@ export function PageBody({
  *
  * It is the sheet's containing block, so an open sheet sits beside the rows and
  * leaves the header and filter row above it whole - their buttons used to sit
- * under it, out of reach until it was closed.
+ * under it, out of reach until it was closed. `data-sheet` marks it while a
+ * sheet is open, which is when the list's secondary columns step aside.
  */
 export function ListArea({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   const items = Children.toArray(children);
@@ -148,7 +149,11 @@ export function ListArea({ children, style }: { children: ReactNode; style?: CSS
   });
 
   return (
-    <div style={{ position: "relative", flex: 1, display: "flex", minHeight: 0, ...style }}>
+    <div
+      className="mqs-listarea"
+      data-sheet={open || undefined}
+      style={{ position: "relative", flex: 1, display: "flex", minHeight: 0, ...style }}
+    >
       <SheetRetarget.Provider value={wasOpen.current && open}>
         {/* Lets the detail sheet leave after its host drops it. Keyed by slot
             rather than by the host's own key, so clicking another row retargets

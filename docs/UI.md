@@ -73,7 +73,10 @@ boxes.
   by `Toolbar`; the rule sits under the toolbar, not between the two.
 - **List with a detail sheet.** `ListArea` > `ListPane` + `DetailPanel`. The
   sheet sits beside the rows and the list gives up its width, so no column is
-  hidden; on a narrow page it overlays instead.
+  hidden; on a narrow page it overlays instead. Mark the list's columns so the
+  row still fits beside the sheet: `mqs-col-fill` on the column that may end
+  in an ellipsis (the name, or a message list's body) and `mqs-col-secondary`
+  on the columns the sheet repeats, which step aside while it is open.
 - **Overview.** One ruled KPI card (`.mqs-kpis` + `StatTile` with an icon and
   tone), a chart with its legend in the card header, then the ranking tables
   side by side, each linking to its full page.

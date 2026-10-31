@@ -118,7 +118,7 @@ export function DlqActiveMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.activemq.dlq.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.activemq.dlq.name")}</TableHead>
                   <TableHead className="num">{t("board.activemq.dlq.depth")}</TableHead>
                   <TableHead className="num">{t("board.activemq.dlq.consumers")}</TableHead>
                   <TableHead className="num">{t("board.activemq.dlq.sources")}</TableHead>
@@ -131,7 +131,7 @@ export function DlqActiveMQ() {
                     selected={selected === queue.name}
                     onClick={() => setSelected(queue.name)}
                   >
-                    <TableCell className="select-text">{queue.name}</TableCell>
+                    <TableCell className="mqs-col-fill select-text">{queue.name}</TableCell>
                     <TableCell className="num">{formatCount(Number(queue.depth))}</TableCell>
                     <TableCell className="num">{formatCount(queue.consumers)}</TableCell>
                     <TableCell className="num">

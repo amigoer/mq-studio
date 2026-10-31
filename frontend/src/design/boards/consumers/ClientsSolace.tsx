@@ -115,7 +115,7 @@ export function ClientsSolace() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.solace.clients.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.solace.clients.name")}</TableHead>
                   <TableHead>{t("board.solace.clients.address")}</TableHead>
                   <TableHead>{t("board.solace.clients.username")}</TableHead>
                   <TableHead className="num">{t("board.solace.clients.binds")}</TableHead>
@@ -129,8 +129,8 @@ export function ClientsSolace() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span
                           className={cn(
                             "truncate select-text",

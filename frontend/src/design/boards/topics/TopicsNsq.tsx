@@ -200,13 +200,13 @@ export function TopicsNsq() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.nsq.topics.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.nsq.topics.name")}</TableHead>
                   <TableHead className="num">{t("board.nsq.topics.depth")}</TableHead>
                   <TableHead className="num">{t("board.nsq.topics.channels")}</TableHead>
                   <TableHead className="num">{t("board.nsq.topics.inFlight")}</TableHead>
-                  <TableHead className="num">{t("board.nsq.topics.deferred")}</TableHead>
+                  <TableHead className="mqs-col-secondary num">{t("board.nsq.topics.deferred")}</TableHead>
                   <TableHead className="num">{t("board.nsq.topics.messages")}</TableHead>
-                  <TableHead className="num">{t("board.nsq.topics.nodes")}</TableHead>
+                  <TableHead className="mqs-col-secondary num">{t("board.nsq.topics.nodes")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -216,8 +216,8 @@ export function TopicsNsq() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {entry.paused && (
                           <Status tone="warn">{t("board.nsq.topics.pausedBadge")}</Status>
@@ -230,9 +230,9 @@ export function TopicsNsq() {
                     <TableCell className="num">{count(entry.depth)}</TableCell>
                     <TableCell className="num">{entry.channels.length}</TableCell>
                     <TableCell className="num">{count(entry.inFlight)}</TableCell>
-                    <TableCell className="num">{count(entry.deferred)}</TableCell>
+                    <TableCell className="mqs-col-secondary num">{count(entry.deferred)}</TableCell>
                     <TableCell className="num">{count(entry.messages)}</TableCell>
-                    <TableCell className="num">{entry.nodes.length}</TableCell>
+                    <TableCell className="mqs-col-secondary num">{entry.nodes.length}</TableCell>
                   </TableRow>
                 ))}
                 {shown.length === 0 && (

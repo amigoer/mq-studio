@@ -172,10 +172,10 @@ export function ChannelsRabbitMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.common.client")}</TableHead>
-                  <TableHead>{t("board.common.user")}</TableHead>
-                  <TableHead>{t("board.consumers.rabbitmq.protocol")}</TableHead>
-                  <TableHead style={{ textAlign: "right" }}>
+                  <TableHead className="mqs-col-fill">{t("board.common.client")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.common.user")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.consumers.rabbitmq.protocol")}</TableHead>
+                  <TableHead className="mqs-col-secondary" style={{ textAlign: "right" }}>
                     {t("board.common.channel")}
                   </TableHead>
                   <TableHead style={{ textAlign: "right" }}>Unacked</TableHead>
@@ -196,7 +196,7 @@ export function ChannelsRabbitMQ() {
                       selected={selected === connection.name}
                       onClick={() => setSelected(connection.name)}
                     >
-                      <TableCell>
+                      <TableCell className="mqs-col-fill">
                         <b style={{ fontWeight: 500 }}>
                           {connection.clientName !== ""
                             ? connection.clientName
@@ -209,11 +209,11 @@ export function ChannelsRabbitMQ() {
                           {connection.peerHost}:{connection.peerPort}
                         </span>
                       </TableCell>
-                      <TableCell>{connection.user}</TableCell>
-                      <TableCell className="mono3" style={MONO11}>
+                      <TableCell className="mqs-col-secondary">{connection.user}</TableCell>
+                      <TableCell className="mqs-col-secondary mono3" style={MONO11}>
                         {connection.protocol}
                       </TableCell>
-                      <TableCell style={{ textAlign: "right" }}>
+                      <TableCell className="mqs-col-secondary" style={{ textAlign: "right" }}>
                         {formatCount(connection.channels)}
                       </TableCell>
                       <TableCell

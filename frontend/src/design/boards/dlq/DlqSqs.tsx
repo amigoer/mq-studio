@@ -88,7 +88,7 @@ export function DlqSqs() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.sqs.dlq.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.sqs.dlq.name")}</TableHead>
                   <TableHead className="num">{t("board.sqs.dlq.depth")}</TableHead>
                   <TableHead>{t("board.sqs.dlq.sources")}</TableHead>
                 </TableRow>
@@ -100,7 +100,7 @@ export function DlqSqs() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell className="select-text">{entry.name}</TableCell>
+                    <TableCell className="mqs-col-fill select-text">{entry.name}</TableCell>
                     <TableCell className="num">{count(entry.depth)}</TableCell>
                     <TableCell className="select-text">
                       {sourcesOf(entry).length === 0

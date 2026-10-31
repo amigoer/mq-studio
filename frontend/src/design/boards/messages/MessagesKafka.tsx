@@ -245,8 +245,8 @@ export function MessagesKafka() {
                   <TableHead style={R}>{t("board.common.partition")}</TableHead>
                   <TableHead style={R}>Offset</TableHead>
                   <TableHead>Key</TableHead>
-                  <TableHead>{t("board.messages.kafka.valueSummary")}</TableHead>
-                  <TableHead style={R}>Headers</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.messages.kafka.valueSummary")}</TableHead>
+                  <TableHead className="mqs-col-secondary" style={R}>Headers</TableHead>
                   <TableHead>{t("board.common.timestamp")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -270,10 +270,10 @@ export function MessagesKafka() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
+                    <TableCell className="mqs-col-fill mono3" style={{ ...MONO11, color: "var(--c-mono-dim)" }}>
                       <ValueSummary record={record} />
                     </TableCell>
-                    <TableCell style={R}>{headerCount(record)}</TableCell>
+                    <TableCell className="mqs-col-secondary" style={R}>{headerCount(record)}</TableCell>
                     <TableCell className="mono3" style={MONO11}>{record.storeTime}</TableCell>
                   </TableRow>
                 ))}

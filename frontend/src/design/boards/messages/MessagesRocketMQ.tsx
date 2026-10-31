@@ -173,10 +173,10 @@ export function MessagesRocketMQ({ nav }: BoardProps = {}) {
         <Table inset>
           <TableHeader>
             <TableRow>
-              <TableHead>MsgId</TableHead>
-              <TableHead>Key</TableHead>
+              <TableHead className="mqs-col-fill">MsgId</TableHead>
+              <TableHead className="mqs-col-secondary">Key</TableHead>
               <TableHead>Tag</TableHead>
-              <TableHead className="text-right">{t("board.common.queue")}</TableHead>
+              <TableHead className="mqs-col-secondary text-right">{t("board.common.queue")}</TableHead>
               <TableHead>{t("board.messages.rocketmq.storedAt")}</TableHead>
               <TableHead>{t("board.common.status")}</TableHead>
             </TableRow>
@@ -188,14 +188,14 @@ export function MessagesRocketMQ({ nav }: BoardProps = {}) {
                 selected={selected === item.messageId}
                 onClick={() => setSelected(item.messageId)}
               >
-                <TableCell className="mono3 max-w-70 truncate text-xs">
+                <TableCell className="mqs-col-fill mono3 max-w-70 truncate text-xs">
                   {item.messageId}
                 </TableCell>
-                <TableCell className="mono3 max-w-50 truncate text-xs">
+                <TableCell className="mqs-col-secondary mono3 max-w-50 truncate text-xs">
                   {item.keys || "—"}
                 </TableCell>
                 <TableCell>{item.tags || "—"}</TableCell>
-                <TableCell className="mono3 text-right">q{item.queueId}</TableCell>
+                <TableCell className="mqs-col-secondary mono3 text-right">q{item.queueId}</TableCell>
                 <TableCell className="mono3 text-xs">
                   {formatMessageTime(
                     item.storeTime,

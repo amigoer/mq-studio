@@ -103,7 +103,7 @@ export function BrokersPulsar() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("board.common.address")}</TableHead>
+                    <TableHead className="mqs-col-fill">{t("board.common.address")}</TableHead>
                     <TableHead>{t("board.common.status")}</TableHead>
                     <TableHead>{t("board.common.version")}</TableHead>
                     <TableHead style={R}>{t("board.cluster.pulsar.bundles")}</TableHead>
@@ -118,7 +118,7 @@ export function BrokersPulsar() {
                       data-state={row.address === selected ? "selected" : undefined}
                       onClick={() => setSelected(row.address)}
                     >
-                      <TableCell className="mono3">
+                      <TableCell className="mqs-col-fill mono3">
                         {row.address}
                         {isLeader(row) && (
                           <span className="ml-2 text-(--c-muted)">

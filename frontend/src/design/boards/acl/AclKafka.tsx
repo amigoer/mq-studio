@@ -183,7 +183,7 @@ export function AclKafka() {
                 <Table inset>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{t("board.acl.kafka.principal")}</TableHead>
+                      <TableHead className="mqs-col-fill">{t("board.acl.kafka.principal")}</TableHead>
                       <TableHead>{t("board.acl.kafka.grants")}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -194,7 +194,7 @@ export function AclKafka() {
                         selected={selected === rule.subject}
                         onClick={() => setSelected(rule.subject)}
                       >
-                        <TableCell className="mono3" style={MONO11}>{rule.subject}</TableCell>
+                        <TableCell className="mqs-col-fill mono3" style={MONO11}>{rule.subject}</TableCell>
                         <TableCell style={{ color: "var(--c-muted)" }}>
                           {t("board.acl.kafka.nPolicies", { n: (rule.policies ?? []).length })}
                         </TableCell>

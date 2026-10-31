@@ -225,7 +225,7 @@ export function StreamsRedis() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Stream Key</TableHead>
+                  <TableHead className="mqs-col-fill">Stream Key</TableHead>
                   <TableHead style={RIGHT}>XLEN</TableHead>
                   <TableHead style={RIGHT}>{t("board.common.group")}</TableHead>
                   <TableHead>last-generated-id</TableHead>
@@ -242,7 +242,7 @@ export function StreamsRedis() {
                       selected={selected === key}
                       onClick={() => setSelected(key)}
                     >
-                      <TableCell>
+                      <TableCell className="mqs-col-fill">
                         <b className="mono3" style={{ fontWeight: 500, ...NAME }}>
                           {key}
                         </b>

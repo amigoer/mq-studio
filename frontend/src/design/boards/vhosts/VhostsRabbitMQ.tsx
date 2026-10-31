@@ -180,7 +180,7 @@ export function VhostsRabbitMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.vhosts.rabbitmq.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.vhosts.rabbitmq.name")}</TableHead>
                   <TableHead>{t("board.vhosts.rabbitmq.defaultQueueType")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>Ready</TableHead>
                   <TableHead style={{ textAlign: "right" }}>Unacked</TableHead>
@@ -195,7 +195,7 @@ export function VhostsRabbitMQ() {
                     selected={selected === vhost.name}
                     onClick={() => setSelected(vhost.name)}
                   >
-                    <TableCell className="mono3">
+                    <TableCell className="mqs-col-fill mono3">
                       <b style={{ fontWeight: 500 }}>{vhost.name}</b>
                       {vhost.description !== "" && (
                         <span

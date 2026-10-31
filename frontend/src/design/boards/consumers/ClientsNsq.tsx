@@ -110,14 +110,14 @@ export function ClientsNsq() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.nsq.clients.peer")}</TableHead>
-                  <TableHead>{t("board.nsq.clients.roleColumn")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.nsq.clients.peer")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.nsq.clients.roleColumn")}</TableHead>
                   <TableHead>{t("board.nsq.clients.topic")}</TableHead>
                   <TableHead>{t("board.nsq.clients.channel")}</TableHead>
-                  <TableHead className="num">{t("board.nsq.clients.ready")}</TableHead>
+                  <TableHead className="mqs-col-secondary num">{t("board.nsq.clients.ready")}</TableHead>
                   <TableHead className="num">{t("board.nsq.clients.inFlight")}</TableHead>
-                  <TableHead className="num">{t("board.nsq.clients.finished")}</TableHead>
-                  <TableHead>{t("board.nsq.clients.node")}</TableHead>
+                  <TableHead className="mqs-col-secondary num">{t("board.nsq.clients.finished")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.nsq.clients.node")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -127,21 +127,21 @@ export function ClientsNsq() {
                     selected={selected === entry.id}
                     onClick={() => setSelected(entry.id)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
-                        <span className="mono3 text-xs">{entry.peer}</span>
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="mono3 truncate text-xs">{entry.peer}</span>
                         {askingForNothing(entry) && (
                           <Status tone="warn">{t("board.nsq.clients.notReadyBadge")}</Status>
                         )}
                       </span>
                     </TableCell>
-                    <TableCell>{t(`board.nsq.clients.role.${entry.role}`)}</TableCell>
+                    <TableCell className="mqs-col-secondary">{t(`board.nsq.clients.role.${entry.role}`)}</TableCell>
                     <TableCell className="select-text">{entry.topic || DASH}</TableCell>
                     <TableCell className="select-text">{entry.channel || DASH}</TableCell>
-                    <TableCell className="num">{count(entry.ready)}</TableCell>
+                    <TableCell className="mqs-col-secondary num">{count(entry.ready)}</TableCell>
                     <TableCell className="num">{count(entry.inFlight)}</TableCell>
-                    <TableCell className="num">{count(entry.finished)}</TableCell>
-                    <TableCell className="mono3 text-xs">{entry.node}</TableCell>
+                    <TableCell className="mqs-col-secondary num">{count(entry.finished)}</TableCell>
+                    <TableCell className="mqs-col-secondary mono3 text-xs">{entry.node}</TableCell>
                   </TableRow>
                 ))}
                 {shown.length === 0 && (

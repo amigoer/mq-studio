@@ -183,7 +183,7 @@ export function SubscriptionsAzureServiceBus() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.azure-servicebus.subscriptions.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.azure-servicebus.subscriptions.name")}</TableHead>
                   <TableHead>{t("board.azure-servicebus.subscriptions.topic")}</TableHead>
                   <TableHead className="num">
                     {t("board.azure-servicebus.subscriptions.backlog")}
@@ -201,8 +201,8 @@ export function SubscriptionsAzureServiceBus() {
                     selected={selected === key(row)}
                     onClick={() => setSelected(key(row))}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{row.name}</span>
                         {/* Said on the row: it is the one state that looks
                             healthy on every other figure, because nothing can

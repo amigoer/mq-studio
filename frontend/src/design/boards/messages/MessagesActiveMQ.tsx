@@ -165,7 +165,7 @@ export function MessagesActiveMQ() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("board.activemq.messages.id")}</TableHead>
-                  <TableHead>{t("board.activemq.messages.body")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.activemq.messages.body")}</TableHead>
                   <TableHead>{t("board.activemq.messages.time")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -182,7 +182,7 @@ export function MessagesActiveMQ() {
                         {entry.id}
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="mqs-col-fill">
                       <span style={MONO11}>
                         {entry.truncated
                           ? t("board.activemq.messages.truncated")

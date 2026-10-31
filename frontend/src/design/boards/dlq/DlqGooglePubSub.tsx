@@ -91,9 +91,9 @@ export function DlqGooglePubSub() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.google-pubsub.dlq.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.google-pubsub.dlq.name")}</TableHead>
                   <TableHead className="num">{t("board.google-pubsub.dlq.readers")}</TableHead>
-                  <TableHead>{t("board.google-pubsub.dlq.sources")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.google-pubsub.dlq.sources")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -103,8 +103,8 @@ export function DlqGooglePubSub() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {/* Nothing reads it, so every dead letter that arrives
                             is thrown away on the spot. */}
@@ -116,7 +116,7 @@ export function DlqGooglePubSub() {
                       </span>
                     </TableCell>
                     <TableCell className="num">{count(entry.consumers)}</TableCell>
-                    <TableCell className="select-text">
+                    <TableCell className="mqs-col-secondary select-text">
                       {sourcesOf(entry).length === 0
                         ? t("board.google-pubsub.dlq.noSources")
                         : sourcesOf(entry)
