@@ -1,9 +1,16 @@
 import { Fragment, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus } from "lucide-react";
+import { MoreHorizontal, Plus } from "lucide-react";
 import { ListArea, ListPane, Page, PageHeader, RefreshButton, Toolbar } from "@/design/shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
@@ -592,11 +599,23 @@ function TopicSheet({
         <Button variant="outline" onClick={onSend}>
           {t("board.common.sendMessage")}
         </Button>
-        <Button variant="outline" onClick={onEdit}>{t("board.common.edit")}</Button>
         <span className="flex-1" />
-        <Button variant="destructive" onClick={onDelete}>
-          {t("board.common.delete")}
-        </Button>
+        {/* Four labelled buttons ran past the sheet's edge in English, so the
+            two rarer actions share a menu. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" aria-label={t("board.common.actions")}>
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onEdit}>{t("board.common.edit")}</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+              {t("board.common.delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </DetailPanelFooter>
     </DetailPanel>
   );
