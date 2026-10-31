@@ -32,6 +32,26 @@ export const BESIDE_THE_PAGE = "data-beside-page";
 const beside = (target: EventTarget | null) =>
   target instanceof Element && target.closest(`[${BESIDE_THE_PAGE}]`) != null;
 
+/** Whether a click on `target` is one on the blank area the sheet closes for. */
+export function dismissesSheet(target: Element, sheet: Element | null): boolean {
+  if (!target.isConnected) return false;
+  // A modal popup turns off pointer events on body as it opens on pointerdown,
+  // so the click that opened or closes it lands on the root, not its trigger.
+  if (target === document.documentElement) return false;
+  if (sheet?.contains(target)) return false;
+  if (target.closest("tbody tr") != null) return false;
+  if (target.closest(INTERACTIVE) != null) return false;
+  return !beside(target);
+}
+
+/**
+ * Whether a key press closes the sheet. An Escape a popup above it already
+ * took arrives marked handled: one press closes one layer.
+ */
+export function dismissesOnKey(event: KeyboardEvent): boolean {
+  return event.key === "Escape" && !event.defaultPrevented && !beside(event.target);
+}
+
 /**
  * True while the list area already had a sheet open in the commit before. A
  * sheet mounting then is the same slot showing another row (hosts key their
@@ -92,15 +112,10 @@ export function DetailPanel({
     // Bubble phase on the document, so React's root handler has already run.
     const onClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
-      if (target == null || !target.isConnected) return;
-      if (ref.current?.contains(target)) return;
-      if (target.closest("tbody tr") != null) return;
-      if (target.closest(INTERACTIVE) != null) return;
-      if (beside(target)) return;
-      dismiss.current?.();
+      if (target != null && dismissesSheet(target, ref.current)) dismiss.current?.();
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !beside(event.target)) dismiss.current?.();
+      if (dismissesOnKey(event)) dismiss.current?.();
     };
     document.addEventListener("click", onClick);
     window.addEventListener("keydown", onKey);
