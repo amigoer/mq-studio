@@ -208,6 +208,9 @@ func TestAConversationIsTakenUpAfterTheWindowCloses(t *testing.T) {
 	reopened := NewManager(Config{Store: w.store, Services: w.services, Archive: OpenArchive(directory),
 		Emit: func(event Event) { w.events <- event }})
 	reopened.newChat = w.model.newChat
+	// The clock the conversation was kept under; real time would prune it once
+	// that date is past the retention.
+	reopened.now = w.manager.now
 	summaries, err := reopened.Sessions()
 	if err != nil || len(summaries) != 1 || summaries[0].ID != session || summaries[0].Open ||
 		summaries[0].Title != "How deep is orders?" || summaries[0].Connection.Name != "scratch" {
