@@ -44,8 +44,10 @@ echo "clearing the previous seed"
 # driver already has to get right.
 keys="$(cli --scan --pattern 'mqs-seed:*')"
 if [ -n "$keys" ]; then
+  # Not xargs: cli is a shell function, which xargs cannot run. Splitting on
+  # whitespace is safe because every key here was named by this script.
   # shellcheck disable=SC2086
-  echo "$keys" | tr '\n' ' ' | xargs -r cli del >/dev/null
+  cli del $keys >/dev/null
 fi
 
 echo "seeding streams"
