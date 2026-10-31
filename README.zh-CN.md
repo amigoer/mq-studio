@@ -29,7 +29,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/overview.dark.png">
-  <img src="docs/images/readme/overview.png" width="100%" alt="MQ Studio 连接一个运行中的 RocketMQ 集群：Broker、Topic、消费组、生产速率与总堆积，吞吐趋势图、Broker 健康状况与最活跃的 Topic">
+  <img src="docs/images/readme/overview.png" width="100%" alt="MQ Studio 连接一个运行中的 RocketMQ 集群：Broker、Topic、消费组、生产速率与总堆积，吞吐趋势图、Broker 健康状况、最活跃的 Topic 与堆积最多的消费组">
 </picture>
 
 ## 为什么用 MQ Studio
@@ -37,7 +37,7 @@
 每一种消息队列都自带一个控制台：页面不同、叫法不同，而且每一个都是要部署、要值守的服务。MQ Studio 把它们放进同一套页面。
 
 - **无需部署。** macOS、Windows、Linux 桌面应用，连接配置留在本机，凭证加密存储。
-- **一套流程走遍所有中间件。** Topic、消费者、消息、集群与告警，不管连的是哪一种，用法都一样。
+- **一套流程走遍所有中间件。** Topic、消费者、消息、集群与告警，不管连的是哪一种，用法都一样；每个列表的详情都在旁边的面板里打开。
 - **如实呈现每个中间件。** 每个连接都会上报端点真正能做什么，中间件没有的功能会说明原因，而不是假装有。
 - **每个页面旁都有 AI 助手。** 问它某个消费组为什么落后，它会自己去 broker 上查；模型服务由你选，要改动什么都先等你批准。
 - **也能交给 agent。** 同一个二进制通过 MCP 提供这些连接：默认只读，清空、删除要人确认，每个写操作都有记录。
@@ -47,22 +47,22 @@
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/images/readme/messages.png" alt="在一个 RocketMQ Topic 上查询消息，打开其中一条订单消息，JSON 消息体已经格式化">
+      <img src="docs/images/readme/messages.png" alt="在一个 RocketMQ Topic 上查询消息，其中一条订单消息在列表旁的面板里打开，JSON 消息体已经格式化">
       <p><strong>消息。</strong>按 Key、Tag 或 ID 查询，打开消息体，看哪些消费组已经消费。</p>
     </td>
     <td width="50%" valign="top">
-      <img src="docs/images/readme/consumers.png" alt="按积压排序的消费组列表，打开一个落后的组：没有在线客户端，以及它读的每个队列的积压">
+      <img src="docs/images/readme/consumers.png" alt="按积压排序的消费组列表，legacy-sync 的详情在列表旁的面板里打开：没有在线客户端，以及它读的每个队列的位点与积压">
       <p><strong>消费积压。</strong>查清一个组为什么落后：逐队列的积压、在线的客户端，以及可以重置或克隆的位点。</p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/images/readme/topics.png" alt="按生产 TPS 排序的 Topic 列表，打开其中一个：吞吐、订阅它的消费组，以及每个队列的位点">
+      <img src="docs/images/readme/topics.png" alt="按生产 TPS 排序的 Topic 列表，order-create 的详情在列表旁的面板里打开：吞吐、订阅它的消费组与队列">
       <p><strong>Topic。</strong>每个 Topic 的吞吐、队列与订阅关系，直接读自 Broker。</p>
     </td>
     <td width="50%" valign="top">
-      <img src="docs/images/readme/connections.png" alt="连接列表：RocketMQ、Kafka、RabbitMQ、Redis Stream、NATS、MQTT 与 NSQ 集群，全部在线">
-      <p><strong>连接。</strong>不管哪种中间件，所有集群都在一个列表里，每个都在自己的标签页中打开。</p>
+      <img src="docs/images/readme/connections.png" alt="卡片形式的连接页：Redis Stream、Pulsar、NSQ、ActiveMQ、RabbitMQ、RocketMQ、MQTT、NATS 与 Kafka 集群，全部在线">
+      <p><strong>连接。</strong>不管哪种中间件，所有集群都在一个页面里，可以按卡片或列表查看，每个都在自己的标签页中打开。</p>
     </td>
   </tr>
 </table>
