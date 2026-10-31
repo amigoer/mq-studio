@@ -9,6 +9,34 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-31
+
+Layout fixes for a 1280x800 window: lists beside an open detail panel, the
+RocketMQ topic panel's buttons, and two labels that were cut or doubled.
+
+### Fixed
+
+- A list with a detail panel open beside it fits the room it has left. At
+  1280x800 the table ran past the page and its last columns were cut off: the
+  RocketMQ consumer groups lost Dead letters and Status in English, and Status
+  read "没" in Chinese; eleven other lists did the same. While a panel is open,
+  the columns it repeats for the selected row step aside, and the name column
+  ends in an ellipsis rather than pushing the rest out. (#123)
+
+- The RocketMQ topic panel's buttons ran past its edge in English, cutting
+  Delete to "Del". Browse messages and Send message stay as buttons; Edit and
+  Delete moved into a ⋯ menu. (#124)
+
+- A menu or dialog opened from a detail panel no longer closes the panel, and
+  Escape closes only the topmost of them, so cancelling a delete confirmation
+  leaves the panel open. (#124)
+
+- The English RocketMQ overview cut the "Backlog alert" badge in Top groups by
+  backlog to "Backlog al". (#123)
+
+- The RocketMQ message panel named the body format twice, "Body · JSON JSON",
+  and labelled a text body "Body · JSON Text". (#123)
+
 ## [0.4.1] - 2026-10-27
 
 ### Changed
