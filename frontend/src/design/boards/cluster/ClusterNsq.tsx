@@ -141,7 +141,7 @@ export function ClusterNsq() {
               <Table inset>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("board.nsq.cluster.address")}</TableHead>
+                    <TableHead className="mqs-col-fill">{t("board.nsq.cluster.address")}</TableHead>
                     <TableHead>{t("board.nsq.cluster.version")}</TableHead>
                     <TableHead className="num">{t("board.nsq.cluster.topics")}</TableHead>
                     <TableHead className="num">{t("board.nsq.cluster.channels")}</TableHead>
@@ -156,9 +156,9 @@ export function ClusterNsq() {
                       selected={selected === entry.address}
                       onClick={() => setSelected(entry.address)}
                     >
-                      <TableCell>
-                        <span className="flex items-center gap-1.5">
-                          <span className="mono3 text-xs">{entry.address}</span>
+                      <TableCell className="mqs-col-fill">
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="mono3 truncate text-xs">{entry.address}</span>
                           {entry.status !== "online" && (
                             <Status tone="warn">
                               {entry.health || t("board.nsq.cluster.unhealthy")}

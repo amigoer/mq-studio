@@ -206,12 +206,12 @@ export function QueuesSqs() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.sqs.queues.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.sqs.queues.name")}</TableHead>
                   <TableHead className="num">{t("board.sqs.queues.visible")}</TableHead>
                   <TableHead className="num">{t("board.sqs.queues.inFlight")}</TableHead>
                   <TableHead className="num">{t("board.sqs.queues.delayed")}</TableHead>
                   <TableHead className="num">{t("board.sqs.queues.depth")}</TableHead>
-                  <TableHead>{t("board.sqs.queues.deadLetterQueue")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.sqs.queues.deadLetterQueue")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -221,8 +221,8 @@ export function QueuesSqs() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {entry.fifo && <OutlineTag>{t("board.sqs.queues.fifoBadge")}</OutlineTag>}
                       </span>
@@ -231,7 +231,7 @@ export function QueuesSqs() {
                     <TableCell className="num">{count(entry.inFlight)}</TableCell>
                     <TableCell className="num">{count(entry.delayed)}</TableCell>
                     <TableCell className="num">{count(entry.depth)}</TableCell>
-                    <TableCell className="select-text">{entry.deadLetterQueue ?? DASH}</TableCell>
+                    <TableCell className="mqs-col-secondary select-text">{entry.deadLetterQueue ?? DASH}</TableCell>
                   </TableRow>
                 ))}
                 {shown.length === 0 && (

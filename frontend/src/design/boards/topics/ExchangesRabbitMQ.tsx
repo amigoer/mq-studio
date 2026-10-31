@@ -269,7 +269,7 @@ export function ExchangesRabbitMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.common.exchange")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.common.exchange")}</TableHead>
                   <TableHead>{t("board.common.type")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>
                     {t("board.common.bindings")}
@@ -289,7 +289,7 @@ export function ExchangesRabbitMQ() {
                       selected={selected === exchange.ref.name}
                       onClick={() => setSelected(exchange.ref.name)}
                     >
-                      <TableCell>
+                      <TableCell className="mqs-col-fill">
                         <b
                           style={{
                             fontWeight: 500,

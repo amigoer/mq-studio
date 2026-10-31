@@ -117,7 +117,7 @@ export function ChannelsIbmMq() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.ibmmq.channels.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.ibmmq.channels.name")}</TableHead>
                   <TableHead>{t("board.ibmmq.channels.type")}</TableHead>
                   <TableHead>{t("board.ibmmq.channels.status")}</TableHead>
                   <TableHead className="num">{t("board.ibmmq.channels.instances")}</TableHead>
@@ -131,8 +131,8 @@ export function ChannelsIbmMq() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {entry.inDoubt && (
                           <Status tone="warn">{t("board.ibmmq.channels.inDoubtBadge")}</Status>

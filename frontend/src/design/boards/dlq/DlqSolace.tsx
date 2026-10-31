@@ -124,7 +124,7 @@ export function DlqSolace() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.solace.dlq.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.solace.dlq.name")}</TableHead>
                   <TableHead className="num">{t("board.solace.dlq.depth")}</TableHead>
                   <TableHead className="num">{t("board.solace.dlq.consumers")}</TableHead>
                   <TableHead className="num">{t("board.solace.dlq.sources")}</TableHead>
@@ -137,8 +137,8 @@ export function DlqSolace() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {!targetExists(entry) && (
                           <Status tone="warn">{t("board.solace.dlq.missingBadge")}</Status>

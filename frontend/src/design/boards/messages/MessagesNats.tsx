@@ -176,7 +176,7 @@ export function MessagesNats() {
                   <TableHead style={RIGHT}>{t("board.messages.nats.sequence")}</TableHead>
                   <TableHead>{t("board.messages.nats.subject")}</TableHead>
                   <TableHead>{t("board.messages.nats.stored")}</TableHead>
-                  <TableHead>{t("board.messages.nats.body")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.messages.nats.body")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -195,7 +195,7 @@ export function MessagesNats() {
                     <TableCell className="mono3" style={MONO11}>
                       {storedAt(message)}
                     </TableCell>
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-fill mono3" style={MONO11}>
                       <Preview message={message} />
                     </TableCell>
                   </TableRow>

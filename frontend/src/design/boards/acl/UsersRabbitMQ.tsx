@@ -214,7 +214,7 @@ export function UsersRabbitMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.common.user")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.common.user")}</TableHead>
                   <TableHead>{t("board.acl.rabbitmq.tags")}</TableHead>
                   <TableHead style={{ textAlign: "right" }}>
                     {t("board.acl.rabbitmq.vhostCount")}
@@ -229,7 +229,7 @@ export function UsersRabbitMQ() {
                     selected={selected === identity.name}
                     onClick={() => setSelected(identity.name)}
                   >
-                    <TableCell>
+                    <TableCell className="mqs-col-fill">
                       <b style={{ fontWeight: 500 }}>{identity.name}</b>
                     </TableCell>
                     <TableCell>

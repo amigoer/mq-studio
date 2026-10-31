@@ -1253,6 +1253,24 @@ button.ni.on { background: var(--c-primary-soft); color: var(--c-primary-text); 
   }
 }
 
+/*
+ * What is left can still be narrower than a nowrap table, which then scrolls
+ * its last columns out of view mid-word. While a sheet is open the list drops
+ * the columns the sheet repeats for the selected row (`.mqs-col-secondary`),
+ * and one column (`.mqs-col-fill`: the name, or a message list's body) takes
+ * the room that remains and ends in an ellipsis rather than pushing the rest
+ * out.
+ */
+.mqs-listarea[data-sheet] > .mqs-listpane .mqs-col-secondary {
+  display: none;
+}
+.mqs-listarea[data-sheet] > .mqs-listpane .mqs-col-fill {
+  width: 100%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* The connection grid: as many 280px cards as the sheet holds, sharing the slack. */
 .mqs-conngrid {
   display: grid;

@@ -204,7 +204,7 @@ export function ChannelsNsq() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.nsq.channels.name")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.nsq.channels.name")}</TableHead>
                   <TableHead>{t("board.nsq.channels.topic")}</TableHead>
                   <TableHead className="num">{t("board.nsq.channels.backlog")}</TableHead>
                   <TableHead className="num">{t("board.nsq.channels.inFlight")}</TableHead>
@@ -219,8 +219,8 @@ export function ChannelsNsq() {
                     selected={selected === channelKey(entry)}
                     onClick={() => setSelected(channelKey(entry))}
                   >
-                    <TableCell>
-                      <span className="flex items-center gap-1.5">
+                    <TableCell className="mqs-col-fill">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate select-text">{entry.name}</span>
                         {entry.paused ? (
                           <Status tone="warn">{t("board.nsq.channels.pausedBadge")}</Status>

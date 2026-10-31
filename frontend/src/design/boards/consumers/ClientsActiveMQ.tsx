@@ -135,7 +135,7 @@ export function ClientsActiveMQ() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.activemq.clients.peer")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.activemq.clients.peer")}</TableHead>
                   <TableHead>{t("board.activemq.clients.protocol")}</TableHead>
                   <TableHead>{t("board.activemq.clients.user")}</TableHead>
                   <TableHead>{t("board.activemq.clients.state")}</TableHead>
@@ -149,7 +149,7 @@ export function ClientsActiveMQ() {
                     selected={selected === entry.name}
                     onClick={() => setSelected(entry.name)}
                   >
-                    <TableCell className="mono3 text-xs">{entry.peer}</TableCell>
+                    <TableCell className="mqs-col-fill mono3 text-xs">{entry.peer}</TableCell>
                     <TableCell>{entry.protocol === "" ? DASH : entry.protocol}</TableCell>
                     <TableCell className="select-text">
                       {entry.user === "" ? DASH : entry.user}

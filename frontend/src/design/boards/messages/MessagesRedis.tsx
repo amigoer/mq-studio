@@ -180,7 +180,7 @@ export function MessagesRedis() {
                 <TableRow>
                   <TableHead>Entry ID</TableHead>
                   <TableHead style={RIGHT}>{t("board.messages.redis.fieldCount")}</TableHead>
-                  <TableHead>{t("board.messages.redis.fieldSummary")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.messages.redis.fieldSummary")}</TableHead>
                   <TableHead>{t("board.common.time")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -195,7 +195,7 @@ export function MessagesRedis() {
                       <TableCell style={RIGHT}>
                         {fieldCount(item)}
                       </TableCell>
-                      <TableCell className="mono3" style={MONO11}>
+                      <TableCell className="mqs-col-fill mono3" style={MONO11}>
                         {summary(item)}
                       </TableCell>
                       <TableCell className="mono3" style={MONO11}>

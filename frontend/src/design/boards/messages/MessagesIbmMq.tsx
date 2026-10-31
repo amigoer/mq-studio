@@ -159,8 +159,8 @@ export function MessagesIbmMq() {
                 <TableRow>
                   <TableHead>{t("board.ibmmq.messages.messageId")}</TableHead>
                   <TableHead>{t("board.ibmmq.messages.format")}</TableHead>
-                  <TableHead>{t("board.ibmmq.messages.persistence")}</TableHead>
-                  <TableHead>{t("board.ibmmq.messages.body")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.ibmmq.messages.persistence")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.ibmmq.messages.body")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -176,10 +176,10 @@ export function MessagesIbmMq() {
                     <TableCell className="mono3" style={MONO11}>
                       {formatOf(message) ?? DASH}
                     </TableCell>
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-secondary mono3" style={MONO11}>
                       {persistenceOf(message) ?? DASH}
                     </TableCell>
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-fill mono3" style={MONO11}>
                       {bodyUnavailableAs(message) != null ? (
                         <span style={{ color: "var(--c-muted)" }}>
                           {t("board.ibmmq.messages.bodyUnavailable", {

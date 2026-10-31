@@ -153,7 +153,7 @@ export function MessagesSqs() {
                   <TableHead>{t("board.sqs.messages.messageId")}</TableHead>
                   <TableHead>{t("board.sqs.messages.sent")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.sqs.messages.receiveCount")}</TableHead>
-                  <TableHead>{t("board.sqs.messages.body")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.sqs.messages.body")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -174,7 +174,7 @@ export function MessagesSqs() {
                         ? DASH
                         : formatCount(receiveCount(message) as number)}
                     </TableCell>
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-fill mono3" style={MONO11}>
                       {preview(message)}
                     </TableCell>
                   </TableRow>

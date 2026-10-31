@@ -118,7 +118,7 @@ export function BrokersKafka() {
                 <TableHeader>
                   <TableRow>
                     <TableHead style={R}>ID</TableHead>
-                    <TableHead>{t("board.common.address")}</TableHead>
+                    <TableHead className="mqs-col-fill">{t("board.common.address")}</TableHead>
                     <TableHead>Rack</TableHead>
                     <TableHead>{t("board.common.status")}</TableHead>
                   </TableRow>
@@ -131,7 +131,7 @@ export function BrokersKafka() {
                       onClick={() => setSelected(node.address)}
                     >
                       <TableCell style={R}>{nodeID(node)}</TableCell>
-                      <TableCell className="mono3" style={MONO11}>{node.address}</TableCell>
+                      <TableCell className="mqs-col-fill mono3" style={MONO11}>{node.address}</TableCell>
                       <TableCell className="mono3" style={MONO11}>
                         {rack(node) === "" ? "—" : rack(node)}
                       </TableCell>

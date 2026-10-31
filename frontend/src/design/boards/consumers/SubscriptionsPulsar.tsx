@@ -165,7 +165,7 @@ export function SubscriptionsPulsar() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("board.consumers.pulsar.subscription")}</TableHead>
+                    <TableHead className="mqs-col-fill">{t("board.consumers.pulsar.subscription")}</TableHead>
                     <TableHead>{t("board.consumers.pulsar.topic")}</TableHead>
                     <TableHead>{t("board.consumers.pulsar.type")}</TableHead>
                     <TableHead>{t("board.consumers.pulsar.state")}</TableHead>
@@ -186,7 +186,7 @@ export function SubscriptionsPulsar() {
                       }
                       onClick={() => setSelected({ topic: topicOf(row), name: row.ref.name })}
                     >
-                      <TableCell className="mono3">{row.ref.name}</TableCell>
+                      <TableCell className="mqs-col-fill mono3">{row.ref.name}</TableCell>
                       <TableCell className="mono3">{shortTopicOf(row)}</TableCell>
                       <TableCell>
                         <OutlineTag>{subscriptionType(row) || "—"}</OutlineTag>

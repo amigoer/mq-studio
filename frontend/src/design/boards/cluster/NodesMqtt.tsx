@@ -119,7 +119,7 @@ export function NodesMqtt() {
               <Table inset>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("board.cluster.mqtt.node")}</TableHead>
+                    <TableHead className="mqs-col-fill">{t("board.cluster.mqtt.node")}</TableHead>
                     <TableHead>{t("board.common.version")}</TableHead>
                     <TableHead>{t("board.cluster.mqtt.role")}</TableHead>
                     <TableHead className="num">{t("board.cluster.mqtt.connections")}</TableHead>
@@ -135,7 +135,7 @@ export function NodesMqtt() {
                         selected={selected === node.address}
                         onClick={() => setSelected(node.address)}
                       >
-                        <TableCell className="mono3 text-xs">{node.name}</TableCell>
+                        <TableCell className="mqs-col-fill mono3 text-xs">{node.name}</TableCell>
                         <TableCell>{reportedText(node.version)}</TableCell>
                         <TableCell>{reportedText(fields.role)}</TableCell>
                         <TableCell className="num">{reported(fields.connections)}</TableCell>

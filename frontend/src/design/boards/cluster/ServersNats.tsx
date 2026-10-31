@@ -134,11 +134,11 @@ export function ServersNats() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.cluster.nats.server")}</TableHead>
-                  <TableHead>{t("board.cluster.nats.version")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.cluster.nats.server")}</TableHead>
+                  <TableHead className="mqs-col-secondary">{t("board.cluster.nats.version")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.cluster.nats.connections")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.cluster.nats.subscriptions")}</TableHead>
-                  <TableHead style={RIGHT}>{t("board.cluster.nats.peers")}</TableHead>
+                  <TableHead className="mqs-col-secondary" style={RIGHT}>{t("board.cluster.nats.peers")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.cluster.nats.slow")}</TableHead>
                   <TableHead>{t("board.cluster.nats.jetstream")}</TableHead>
                 </TableRow>
@@ -150,7 +150,7 @@ export function ServersNats() {
                     selected={selected === node.name}
                     onClick={() => setSelected(node.name)}
                   >
-                    <TableCell>
+                    <TableCell className="mqs-col-fill">
                       <b className="mono3" style={{ fontWeight: 500, fontSize: "11.5px" }}>
                         {node.name}
                       </b>
@@ -163,7 +163,7 @@ export function ServersNats() {
                         </Status>
                       )}
                     </TableCell>
-                    <TableCell className="mono3" style={MONO11}>
+                    <TableCell className="mqs-col-secondary mono3" style={MONO11}>
                       {node.version}
                     </TableCell>
                     <TableCell style={RIGHT}>
@@ -172,7 +172,7 @@ export function ServersNats() {
                     <TableCell style={RIGHT}>
                       <Metric value={subscriptions(node)} />
                     </TableCell>
-                    <TableCell style={RIGHT}>
+                    <TableCell className="mqs-col-secondary" style={RIGHT}>
                       {/* Peers rather than routes: NATS opens a pool per peer,
                           so eight routes to two peers is ordinary and only the
                           peer count answers "has the cluster formed". */}

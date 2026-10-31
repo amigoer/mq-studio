@@ -121,7 +121,7 @@ export function ShardsKinesis() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.kinesis.shards.id")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.kinesis.shards.id")}</TableHead>
                   <TableHead>{t("board.kinesis.shards.state")}</TableHead>
                   <TableHead className="num">{t("board.kinesis.shards.keyShare")}</TableHead>
                   <TableHead>{t("board.kinesis.shards.parents")}</TableHead>
@@ -134,7 +134,7 @@ export function ShardsKinesis() {
                     selected={selected === entry.id}
                     onClick={() => setSelected(entry.id)}
                   >
-                    <TableCell className="select-text">{entry.id}</TableCell>
+                    <TableCell className="mqs-col-fill select-text">{entry.id}</TableCell>
                     <TableCell>
                       <ShardState entry={entry} />
                     </TableCell>

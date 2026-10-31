@@ -115,7 +115,7 @@ export function NamespacesPulsar() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("board.vhosts.pulsar.namespace")}</TableHead>
+                    <TableHead className="mqs-col-fill">{t("board.vhosts.pulsar.namespace")}</TableHead>
                     <TableHead>{t("board.vhosts.pulsar.tenant")}</TableHead>
                     <TableHead className="text-right">
                       {t("board.vhosts.pulsar.limitsSet")}
@@ -129,7 +129,7 @@ export function NamespacesPulsar() {
                       data-state={row.name === selected ? "selected" : undefined}
                       onClick={() => setSelected(row.name)}
                     >
-                      <TableCell className="mono3">{shortNameOf(row)}</TableCell>
+                      <TableCell className="mqs-col-fill mono3">{shortNameOf(row)}</TableCell>
                       <TableCell className="mono3">{tenantOf(row)}</TableCell>
                       <TableCell className="text-right">{limitCount(row)}</TableCell>
                     </TableRow>
@@ -147,7 +147,7 @@ export function NamespacesPulsar() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t("board.vhosts.pulsar.tenant")}</TableHead>
-                      <TableHead>{t("board.vhosts.pulsar.adminRoles")}</TableHead>
+                      <TableHead className="mqs-col-fill">{t("board.vhosts.pulsar.adminRoles")}</TableHead>
                       <TableHead>{t("board.vhosts.pulsar.allowedClusters")}</TableHead>
                       <TableHead className="text-right">
                         {t("board.vhosts.pulsar.namespaceCount")}
@@ -158,7 +158,7 @@ export function NamespacesPulsar() {
                     {tenants.data.map((tenant) => (
                       <TableRow key={tenant.name}>
                         <TableCell className="mono3">{tenant.name}</TableCell>
-                        <TableCell className="mono3">
+                        <TableCell className="mqs-col-fill mono3">
                           {(tenant.adminRoles ?? []).join(", ") || "—"}
                         </TableCell>
                         <TableCell className="mono3">

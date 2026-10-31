@@ -141,7 +141,7 @@ export function AccountsNats() {
             <Table inset>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("board.vhosts.nats.account")}</TableHead>
+                  <TableHead className="mqs-col-fill">{t("board.vhosts.nats.account")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.vhosts.nats.connections")}</TableHead>
                   <TableHead style={RIGHT}>{t("board.vhosts.nats.subscriptions")}</TableHead>
                   <TableHead>{t("board.vhosts.nats.jetstream")}</TableHead>
@@ -157,7 +157,7 @@ export function AccountsNats() {
                     selected={selected === account.name}
                     onClick={() => setSelected(account.name)}
                   >
-                    <TableCell>
+                    <TableCell className="mqs-col-fill">
                       <b className="mono3" style={{ fontWeight: 500, fontSize: "11.5px" }}>
                         {account.name}
                       </b>
