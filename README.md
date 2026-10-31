@@ -29,7 +29,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/overview.en.dark.png">
-  <img src="docs/images/readme/overview.en.png" width="100%" alt="MQ Studio showing a live RocketMQ cluster: brokers, topics, consumer groups, produce rate and total backlog, a throughput chart, broker health and the busiest topics">
+  <img src="docs/images/readme/overview.en.png" width="100%" alt="MQ Studio showing a live RocketMQ cluster: brokers, topics, consumer groups, produce rate and total backlog, a throughput chart, broker health, the busiest topics and the groups furthest behind">
 </picture>
 
 ## Why MQ Studio
@@ -40,7 +40,7 @@ service to deploy and keep alive. MQ Studio puts all of them behind the same pag
 - **Nothing to deploy.** A desktop app for macOS, Windows and Linux. Profiles stay on your
   machine, and credentials are encrypted at rest.
 - **One workflow for every broker.** Topics, consumers, messages, cluster and alerts work the
-  same way whichever broker you connect to.
+  same way whichever broker you connect to, and every list opens its details beside it.
 - **Honest about each broker.** Every connection reports what its endpoint can actually do, so
   a feature the broker lacks is explained rather than faked.
 - **An assistant beside every page.** Ask why a group is behind and it reads the broker to find
@@ -53,22 +53,22 @@ service to deploy and keep alive. MQ Studio puts all of them behind the same pag
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/images/readme/messages.en.png" alt="Querying messages on a RocketMQ topic, with one order message open and its JSON body formatted">
+      <img src="docs/images/readme/messages.en.png" alt="Querying messages on a RocketMQ topic, with one order message open in a panel beside the list and its JSON body formatted">
       <p><strong>Messages.</strong> Query by key, tag or id, open the body, and see which consumer groups have read it.</p>
     </td>
     <td width="50%" valign="top">
-      <img src="docs/images/readme/consumers.en.png" alt="Consumer groups sorted by backlog, with a lagging group open: no online clients, and the backlog of every queue it reads">
+      <img src="docs/images/readme/consumers.en.png" alt="Consumer groups sorted by backlog, with legacy-sync open in a panel beside the list: no online clients, and the offsets and backlog of every queue it reads">
       <p><strong>Consumer lag.</strong> See why a group is behind: backlog per queue, who is connected, and offsets to reset or clone.</p>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/images/readme/topics.en.png" alt="Topics sorted by produce rate, with one topic open: its throughput, subscribed groups, and the offsets of every queue">
+      <img src="docs/images/readme/topics.en.png" alt="Topics sorted by produce rate, with order-create open in a panel beside the list: its throughput, subscribed groups and queues">
       <p><strong>Topics.</strong> Throughput, queues and subscribers for every topic, read from the broker itself.</p>
     </td>
     <td width="50%" valign="top">
-      <img src="docs/images/readme/connections.en.png" alt="The connection list with RocketMQ, Kafka, RabbitMQ, Redis Stream, NATS, MQTT and NSQ clusters, all online">
-      <p><strong>Connections.</strong> Every cluster in one list, whatever the broker; each opens in its own tab.</p>
+      <img src="docs/images/readme/connections.en.png" alt="Connections as a card grid: Redis Stream, Pulsar, NSQ, ActiveMQ, RabbitMQ, RocketMQ, MQTT, NATS and Kafka clusters, all online">
+      <p><strong>Connections.</strong> Every cluster on one page, as cards or a list, whatever the broker; each opens in its own tab.</p>
     </td>
   </tr>
 </table>
